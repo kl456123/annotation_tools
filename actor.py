@@ -24,7 +24,7 @@ class MyActor(object):
             self.mapper.SetInputData(polydata)
         # retrieve data again
         # there may be bug here
-        self.Update()
+        # self.Update()
 
     def GetPoint(self,pid):
         points_data = self.GetInput()

@@ -6,20 +6,28 @@ class Widget(object):
         pass
 
 class BoxWidget(vtk.vtkBoxWidget):
-    def __init__(self,displayer):
+    def __init__(self,renderer,displayer):
         super().__init__()
         self.interactor = displayer.interactor
-        self.SetInteractor(self.interactor)
-        self.SetPlaceFactor(1)
+        # renderer = renderer
+        self.Generate(renderer)
         self.angle = 0
         self.myactor = None
+
+    def Generate(self,renderer):
+        self.SetInteractor(self.interactor)
+        self.SetPlaceFactor(1)
+        self.SetCurrentRenderer(renderer)
+        # self.GetRepresentation().SetRenderer(renderer)
+        self.SetHandleSize(0.001)
+
 
     def RegisterCallback(self):
         pass
 
     def SetMyactor(self,myactor):
         self.myactor = myactor
-        self.SetProp3D(self.myactor.actor)
+        self.PlaceWidget(self.myactor.GetBounds())
 
     def GetCenter(self):
         return GetBoundsCenter(self.GetBounds())
@@ -41,13 +49,17 @@ class BoxWidget(vtk.vtkBoxWidget):
 class BorderWidget(vtk.vtkBorderWidget):
     def __init__(self,start,end,img_start,interactor):
         super().__init__()
+        self.coords = []
         self.interactor = interactor
         self.img_start = img_start
         self.SetInteractor(self.interactor)
         self.Generate(start,end)
 
+        # leftbottom righttop
+
+
     def GetInfo(self):
-        return [self.GetPosition(),self.GetPosition2()]
+        return self.coords
 
     def SetRenderer(self,renderer):
         self.GetBorderRepresentation().SetRenderer(renderer)
@@ -60,6 +72,10 @@ class BorderWidget(vtk.vtkBorderWidget):
 
         new_start = [start[0],end[1]-new_original[1]]
         new_end = [end[0],start[1]-new_original[1]]
+
+        self.coords+=new_start
+        self.coords+=new_end
+
         print("start,end: ",start,end)
         print("new_start,new_end: ",new_start, new_end)
         size[1] -= new_original[1]
@@ -75,7 +91,7 @@ class BorderWidget(vtk.vtkBorderWidget):
         self.SetRepresentation(representation)
         self.SetInteractor(self.interactor)
         self.SelectableOff()
-        self.ProcessEventsOff()
+        # self.ProcessEventsOff()
         self.On()
 
 

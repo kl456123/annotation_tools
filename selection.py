@@ -27,8 +27,9 @@ from callback import SelectionCallback
 ######################################
 
 class Selection(object):
-    def __init__(self,input_filter,renderer,displayer,debug=False):
-
+    def __init__(self,input_filter,renderer,displayer,point_renderer,debug=False):
+        self.selected_actor = None
+        self.box_widget = None
         self.SetInput(input_filter)
 
         # set renderer
@@ -47,18 +48,11 @@ class Selection(object):
         self.displayer = displayer
 
         self.box_centers = [0,0,0]
+        self.point_renderer = point_renderer
 
         self.ResetWidgetAndActor()
 
         self.RegisterSelectionCallback()
-    # def SetBoxCenter(self):
-    #     c = GetBoundsCenter(self.box_widget.GetBounds())
-    #     self.box_centers[0] = c[0]
-    #     self.box_centers[1] = c[1]
-    #     self.box_centers[2] = c[2]
-    #
-    # def GetBoxCenter(self):
-    #     return self.box_centers
 
     def RegisterSelectionCallback(self):
         self.selection_callback = SelectionCallback(self)
@@ -85,13 +79,19 @@ class Selection(object):
 
     def ResetWidgetAndActor(self):
         # reset actor
+        if self.selected_actor is not None:
+            self.selected_actor.SetInput(self.input.GetOutputPort())
         self.selected_actor = PolyDataActor(self.input.GetOutputPort())
         # pass on actor to renderer
         self.renderer.AddActor(self.GetActor())
+        re = vtk.vtkRenderer()
 
         # reset box widget
-        self.box_widget = BoxWidget(self.displayer)
-        self.box_widget.SetHandleSize(0.001)
+        if self.box_widget is not None:
+            self.box_widget.Off()
+            del self.box_widget
+        self.box_widget = BoxWidget(self.point_renderer,self.displayer)
+        # self.box_widget.SetHandleSize(0.001)
 
         # self.SetBoxCenter()
         # self.box_widget.SetMyactor(self.selected_actor)
@@ -153,6 +153,7 @@ class Selection(object):
 
         # set the last filter to the input of mapper
         self.selected_actor.SetInput(self.last_filter.GetOutputPort())
+        self.selected_actor.Update()
     #
     # def PrintNumberOfLastInputPoints(self,index=-1):
     #     if len(self.extract_geometry_filters)<-index:
@@ -188,8 +189,7 @@ class Selection(object):
         #
         #
         self.box_widget.SetMyactor(self.selected_actor)
-        self.box_widget.PlaceWidget()
-        # self.box_widget.On()
+        # self.box_widget.PlaceWidget()
 
 
 

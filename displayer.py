@@ -11,7 +11,6 @@ class Renderer(vtk.vtkRenderer):
         for myactor in actors:
             self.AddMyActor(myactor)
 
-
         # camera
         self.SetCamera(camera)
 
@@ -67,7 +66,11 @@ class ImageStylePickerRenderer(StylePickerRenderer):
         super().__init__(renderer,style,picker)
         self.myactor = myactor
         self.selection = selection
+        self.border_widgets_idx = 0
         self.border_widgets = []
+
+    def IncreaseIdx(self):
+        self.border_widgets_idx+=len(self.border_widgets)
 
     def SetStyle(self,style=None):
         if style:
@@ -88,6 +91,11 @@ class ImageStylePickerRenderer(StylePickerRenderer):
     def RegisterPickerCallback(self,displayer):
         pass
         # self.picker_callback = ImagePickerCallback(self.picker)
+
+    def CloseLastBorderWidget(self):
+        for border in self.border_widgets:
+            border.Off()
+        self.border_widgets = []
 
 class PolyDataStylePickerRenderer(StylePickerRenderer):
     def __init__(self,renderer,selection=None,style=None,picker=None):
@@ -113,6 +121,9 @@ class PolyDataStylePickerRenderer(StylePickerRenderer):
     def RegisterStyleCallback(self,displayer):
         pass
 
+    # def CloseLastBoxWidget(self):
+    #     self
+
 
 class Displayer(object):
     __metaclass__ = ABCMeta
@@ -133,12 +144,17 @@ class Displayer(object):
         self.window = vtk.vtkRenderWindow()
 
 
+    def SetDataSet(self,dataset):
+        self.dataset = dataset
+
+
     def SetInteractor(self):
         self.interactor = vtk.vtkRenderWindowInteractor()
         self.interactor.SetRenderWindow(self.window)
 
     def Render(self):
         self.window.Render()
+
 
     def Start(self):
         self.interactor.Initialize()
@@ -155,11 +171,52 @@ class StylePickerDisplayer(Displayer):
         self.current_renderer = None
         self.current_idx = None
         self.box_widgets = []
+        self.classes = []
 
         # default the first one is for point cloud displayer
         self.poly_style_idx= 0
         self.img_style_idx=1
         self.need_save_idx = 0
+
+        # default config
+        self.auto_save = True
+
+    def InputClass(self):
+        class_idx = input("please input index of classes:")
+        self.classes.append(class_idx)
+
+    def CloseLastBoxWidget(self):
+        # close border widgets
+        self.StylePickerRenderers[self.img_style_idx].CloseLastBorderWidget()
+
+        # close box widgets
+        # idx = self.GetWidgetIdx()
+        for box in self.box_widgets:
+            box.Off()
+        self.box_widgets = []
+
+    def SetAutoSave(self,flag):
+        self.auto_save = flag
+
+    def SetWindowName(self):
+        title = "the {}th".format(str(self.dataset.data_idx+1))
+        self.window.SetWindowName(title)
+
+    def Start(self):
+        self.dataset.LoadNext()
+        self.Render()
+        self.SetWindowName()
+        super().Start()
+
+    def GetWidgetIdx(self):
+        return self.StylePickerRenderers[self.img_style_idx].border_widgets_idx
+
+
+    def SetPointActor(self,myactor):
+        self.point_actor = myactor
+
+    def SetImageActor(self,myactor):
+        self.img_actor = myactor
 
     def SetFileName(self,filename):
         self.filename = filename
@@ -173,6 +230,7 @@ class StylePickerDisplayer(Displayer):
 
     def GetPointCloudRenderer(self):
         return self.StylePickerRenderers[self.poly_style_idx].renderer
+
 
     def AddBoxWidget(self):
         box_widget = self.selection.GetCurrentBoxWidget()

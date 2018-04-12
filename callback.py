@@ -148,6 +148,9 @@ class ImageStyleCallback(StyleCallback):
         # color it
         self.selection.Color()
 
+        # set continue for selection for convenience
+        self.selection.SetContinue(True)
+
         # render again
         self.displayer.Render()
 
@@ -161,12 +164,16 @@ class ImageStyleCallback(StyleCallback):
             else:
                 border_widget.ProcessEventsOn()
 
+    def Reset(self,obj,event):
+        current_box = self.style_picker_renderer.border_widgets[-1]
+        current_box.Off()
+        del current_box
 
     def Start(self):
         # pass
         self.AddEventObserver("SelectionChangedEvent",self.SelectionChangedEvent)
         self.AddKeyObserver("o",self.ToggleWidgetProcess)
-
+        self.AddKeyObserver("4",self.Reset)
 
 class PointCloudStyleCallback(StyleCallback):
     def __init__(self,obj,debug=False,interactor=None):
@@ -184,38 +191,69 @@ class DisplayerCallback(Callback):
         self.displayer  = displayer
         self.add_widget = False
 
-
+    def ToggleDisplayerCurrentBoxWidget(self,obj,event):
+        cur = self.displayer.selection.box_widget
+        if cur.GetEnabled():
+            cur.Off()
+        else:
+            cur.On()
 
     def Start(self):
         self.AddEventObserver("MouseMoveEvent",self.LeftButtonPressEvent)
-        # self.AddEventObserver("LeftButtonPressEvent",self.LeftButtonPressEvent)
+
         self.AddKeyObserver("a",self.AddSelectionBoxWidget)
         self.AddKeyObserver("i",self.ToggleDisplayerBoxWidgets)
-        self.AddKeyObserver("0",self.SaveLabel)
+        self.AddKeyObserver("0",self.SetLabel)
         self.AddKeyObserver("9",self.PrintLabel)
+        self.AddKeyObserver("n",self.Next)
+        self.AddKeyObserver("j",self.ToggleDisplayerCurrentBoxWidget)
 
-    def SaveLabel(self,obj,event):
-        f = open(self.displayer.filename,"wb")
+    def Next(self,obj,event):
+        # save the last label
+
+        if self.displayer.auto_save:
+            self.SetLabel(None,None)
+        self.displayer.dataset.SaveLabel()
+
+        # next
+        self.displayer.dataset.LoadNext()
+
+        self.displayer.SetWindowName()
+
+        # Off all the last box widgets
+        self.displayer.CloseLastBoxWidget()
+        self.displayer.classes = []
+
+        self.displayer.StylePickerRenderers[self.displayer.img_style_idx].IncreaseIdx()
+
+    def SetLabel(self,obj,event):
+        # f = open(self.displayer.filename,"wb")
+        # all_info = self.displayer.dataset.label
         all_info = []
         box_2D = self.displayer.StylePickerRenderers[self.displayer.img_style_idx].border_widgets
-        for idx, box_3D in  enumerate(self.displayer.box_widgets[self.displayer.need_save_idx:]):
+        for idx, box_3D in  enumerate(self.displayer.box_widgets):
             info = box_3D.GetInfo()
-            info+=box_2D.GetInfo()
+            info+=box_2D[idx].GetInfo()
+            info.append(self.displayer.classes[idx])
             all_info.append(info)
-        pickle.dump(all_info,f)
-        f.close()
-        self.displayer.need_save_idx = len(self.displayer.box_widgets)
+        # pickle.dump(all_info,f)
+        # f.close()
+        self.displayer.dataset.SetLabel(all_info)
+        # self.displayer.need_save_idx = len(self.displayer.box_widgets)
         print("INFO:Save Label success! ")
 
+
+        self.displayer.dataset.SaveStatus()
+
     def PrintLabel(self,obj,event):
-        with open(self.displayer.filename,"rb") as f:
-            data = pickle.load(f)
-        print(data)
+        self.displayer.dataset.PrintLabel()
 
 
     def ToggleDisplayerBoxWidgets(self,obj,event):
         flag = None
-        for idx,boxwidget in enumerate(self.displayer.box_widgets):
+        widget_idx = self.displayer.GetWidgetIdx()
+        print("widget idx: ",widget_idx)
+        for idx,boxwidget in enumerate(self.displayer.box_widgets[widget_idx:]):
             if idx==0:
                 flag = boxwidget.GetEnabled()
                 continue
@@ -224,6 +262,8 @@ class DisplayerCallback(Callback):
     def AddSelectionBoxWidget(self,obj,event):
         # add current box widget of selection
         self.displayer.AddBoxWidget()
+
+        self.displayer.InputClass()
         # self.displayer.AddMyActor(self.displayer.selection.selected_actor)
 
         # reset selection box widget
@@ -334,8 +374,8 @@ class CameraCallback(Callback):
         self.AddKeyObserver("Down",self.DownRotation)
         self.AddKeyObserver("Up",self.UpRotation)
         self.AddKeyObserver("Tab",self.SwitchFocalPoint)
-        self.AddKeyObserver("n",self.ClockwiseRollRotation)
-        self.AddKeyObserver("m",self.CounterclockwiseRollRotation)
+        # self.AddKeyObserver("n",self.ClockwiseRollRotation)
+        # self.AddKeyObserver("m",self.CounterclockwiseRollRotation)
         self.AddKeyObserver("1",self.LowerSlice)
         self.AddKeyObserver("2",self.HigherSlice)
 
@@ -412,7 +452,11 @@ class SelectionCallback(Callback):
 
         box_widget.SetTransform(self.transform)
 
+    def Reset(self,obj,event):
+        self.obj.Reset()
+
     def Start(self):
         self.AddKeyObserver("z",self.ClockwiseRotate)
         self.AddKeyObserver("x", self.CounterclockwiseRotate)
         self.AddKeyObserver("b",self.SetBoxCenterFocalPoint)
+        self.AddKeyObserver("4",self.Reset)
