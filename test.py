@@ -73,11 +73,9 @@ def main():
 
 
 def check_in_line(point1_3D,point2_3D,point3_3D):
-    delta1 = point1_3D-point2_3D
-
-    delta2 = point2_3D-point3_3D
+    delta1 = point1_3D - point2_3D
+    delta2 = point2_3D - point3_3D
     print(delta2,delta1)
-    # print(delta1/delta2)
 
 def test_null():
     a = transform_matrix3Dto2D()
@@ -89,16 +87,14 @@ def test_transform():
     point_3D = [24.26300048828125, 8.574000358581543, -0.4659999907016754]
     a = np.array(point_3D)
     point_2D = pointtrans3Dto2D(point_3D)
-    # print(point_2D)
+
     point_2D = [729,174]
     point_3D_1= pointtrans2Dto3D(point_2D)
     point_3D_2 = pointtrans2Dto3D(point_2D)
     b = np.array(point_3D_1)
     c = np.array(point_3D_2)
     print(b,c)
-
     check_in_line(a,b,c)
-
 
 def test_transform_2D():
     point1_2D = [2,4]
@@ -131,9 +127,14 @@ def test_plane():
     plane.SetNormal(0,1,-1)
     print(plane.FunctionValue(0,0,1))
 
-
+from dataset import *
+def test_yaml():
+    config_parser = ConfigParser()
+    config_parser.LoadConfig("./config/example.yaml")
+    print(config_parser.GetConfig())
 if __name__=="__main__":
-    box = vtk.vtkBoxWidget()
+    test_yaml()
+    # box = vtk.vtkBoxWidget()
     # test_plane()
     # print(transform_matrix3Dto2D())
     # test_transform_2D()

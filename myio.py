@@ -23,13 +23,11 @@ class ImageReaderFactory(object):
             raise TypeError()
 
 class PointCloudReader(object):
-    def __init__(self,transform=True, color_name="red"):
-        # self.filename = filename
-        self.transform = transform
-        self.color_name = color_name
+    def __init__(self,cfg):
+        self.transform = cfg["transform"]
+        self.color_name = cfg["color"]
         self.vertexGlyphFilter = vtk.vtkVertexGlyphFilter()
 
-        # self.SetInputData()
 
     def SetFileName(self,filename):
         scans = read_from(filename, self.transform)

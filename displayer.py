@@ -45,19 +45,15 @@ class StylePickerRenderer(object):
         self.SetPicker(picker)
         self.SetStyle(style)
 
-    @abstractclassmethod
     def SetPicker(self,picker=None):
         pass
 
-    @abstractclassmethod
     def SetStyle(self,style=None):
         pass
 
-    @abstractclassmethod
     def RegisterPickerCallback(self,displayer):
         pass
 
-    @abstractclassmethod
     def RegisterStyleCallback(self,displayer):
         pass
 
@@ -160,26 +156,33 @@ class Displayer(object):
         self.interactor.Initialize()
         self.interactor.Start()
 
-    @abstractclassmethod
     def RegisterDisplayerCallback(self):
         pass
 
 class StylePickerDisplayer(Displayer):
-    def __init__(self):
+    def __init__(self,cfg):
         super().__init__()
-        self.StylePickerRenderers = []
         self.current_renderer = None
         self.current_idx = None
         self.box_widgets = []
         self.classes = []
+        self.StylePickerRenderers = []
+        print(cfg)
+        self.auto_save = cfg["auto_save"]
 
-        # default the first one is for point cloud displayer
-        self.poly_style_idx= 0
-        self.img_style_idx=1
-        self.need_save_idx = 0
+        # self.poly_style_idx= 0
+        # self.img_style_idx=1
+        # self.need_save_idx = 0
 
-        # default config
-        self.auto_save = True
+        self.img_style_flag = False
+
+    def SetImgStylePicker(self,img_style_picker):
+        self.img_style_picker = img_style_picker
+        self.AddStylePickerRenderer(img_style_picker)
+
+    def SetPointCloudStylePicker(self,pc_style_picker):
+        self.pc_style_picker = pc_style_picker
+        self.AddStylePickerRenderer(pc_style_picker)
 
     def InputClass(self):
         class_idx = input("please input index of classes:")
@@ -187,16 +190,11 @@ class StylePickerDisplayer(Displayer):
 
     def CloseLastBoxWidget(self):
         # close border widgets
-        self.StylePickerRenderers[self.img_style_idx].CloseLastBorderWidget()
+        self.img_style_picker.CloseLastBorderWidget()
 
-        # close box widgets
-        # idx = self.GetWidgetIdx()
         for box in self.box_widgets:
             box.Off()
         self.box_widgets = []
-
-    def SetAutoSave(self,flag):
-        self.auto_save = flag
 
     def SetWindowName(self):
         title = "the {}th".format(str(self.dataset.data_idx+1))
@@ -209,7 +207,7 @@ class StylePickerDisplayer(Displayer):
         super().Start()
 
     def GetWidgetIdx(self):
-        return self.StylePickerRenderers[self.img_style_idx].border_widgets_idx
+        return self.img_style_picker.border_widgets_idx
 
 
     def SetPointActor(self,myactor):
@@ -229,8 +227,7 @@ class StylePickerDisplayer(Displayer):
         self.window.AddRenderer(stylePickerRenderer.renderer)
 
     def GetPointCloudRenderer(self):
-        return self.StylePickerRenderers[self.poly_style_idx].renderer
-
+        return self.pc_style_picker.renderer
 
     def AddBoxWidget(self):
         box_widget = self.selection.GetCurrentBoxWidget()
@@ -240,11 +237,8 @@ class StylePickerDisplayer(Displayer):
         self.box_widgets.append(box_widget)
 
         # add possible focal point to renderer
-        point_renderer = self.StylePickerRenderers[self.poly_style_idx]
+        point_renderer = self.pc_style_picker
         point_renderer.renderer.AddPossibleFocalPoint(GetBoundsCenter(box_widget.GetBounds()))
-
-    def AddConstumBoxWidget(self):
-        pass
 
     def SwitchStylePicker(self,idx):
         if self.current_idx==idx:
@@ -275,6 +269,10 @@ class StylePickerDisplayer(Displayer):
             region[3]*=size[1]
             if self._CheckInSide(pos,region):
                 return idx
+
+    # def CheckPosInImage(self,pos):
+
+
 
     def RegisterDisplayerCallback(self):
         self.callback = DisplayerCallback(self)

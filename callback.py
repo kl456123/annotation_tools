@@ -224,22 +224,33 @@ class DisplayerCallback(Callback):
         self.displayer.CloseLastBoxWidget()
         self.displayer.classes = []
 
-        self.displayer.StylePickerRenderers[self.displayer.img_style_idx].IncreaseIdx()
+        self.displayer.img_style_picker.IncreaseIdx()
 
     def SetLabel(self,obj,event):
-        # f = open(self.displayer.filename,"wb")
-        # all_info = self.displayer.dataset.label
+
         all_info = []
-        box_2D = self.displayer.StylePickerRenderers[self.displayer.img_style_idx].border_widgets
+        box_2D = self.displayer.img_style_picker.border_widgets
         for idx, box_3D in  enumerate(self.displayer.box_widgets):
-            info = box_3D.GetInfo()
-            info+=box_2D[idx].GetInfo()
+            # the num is 16 in all
+            info = []
+            # 1
             info.append(self.displayer.classes[idx])
+            # 2
+            info.extend(GetTruncatedAndOccluded())
+            # 1
+            info.append(GetObserverAngle(box_3D))
+            # 4
+            info.extend(box_2D[idx].GetInfo([1242,375]))
+            # 7
+            info.extend(box_3D.GetInfo())
+
+            # fake score
+            # 1
+            info.extend([1.0])
+
             all_info.append(info)
-        # pickle.dump(all_info,f)
-        # f.close()
+
         self.displayer.dataset.SetLabel(all_info)
-        # self.displayer.need_save_idx = len(self.displayer.box_widgets)
         print("INFO:Save Label success! ")
 
 
@@ -318,6 +329,9 @@ class CameraCallback(Callback):
     def AddPossibleFocalPoint(self,possible_focalpoint):
         self.possible_fps.append(possible_focalpoint)
 
+    def ResetPossibleFocalPoint(self,obj,event):
+        self.possible_fps = [(0,0,0)]
+
     def SwitchFocalPoint(self,obj,event):
         self.idx_fps =(self.idx_fps+1)%len(self.possible_fps)
         self.focal_point = self.possible_fps[self.idx_fps]
@@ -378,6 +392,7 @@ class CameraCallback(Callback):
         # self.AddKeyObserver("m",self.CounterclockwiseRollRotation)
         self.AddKeyObserver("1",self.LowerSlice)
         self.AddKeyObserver("2",self.HigherSlice)
+        self.AddKeyObserver("n",self.ResetPossibleFocalPoint)
 
 # class BoxWidgetCallback(Callback):
 #     def __init__(self,obj,interactor):

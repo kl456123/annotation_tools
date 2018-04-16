@@ -79,8 +79,8 @@ class Selection(object):
 
     def ResetWidgetAndActor(self):
         # reset actor
-        if self.selected_actor is not None:
-            self.selected_actor.SetInput(self.input.GetOutputPort())
+        # if self.selected_actor is not None:
+        #     self.selected_actor.SetInput(self.input.GetOutputPort())
         self.selected_actor = PolyDataActor(self.input.GetOutputPort())
         # pass on actor to renderer
         self.renderer.AddActor(self.GetActor())
@@ -91,13 +91,7 @@ class Selection(object):
             self.box_widget.Off()
             del self.box_widget
         self.box_widget = BoxWidget(self.point_renderer,self.displayer)
-        # self.box_widget.SetHandleSize(0.001)
 
-        # self.SetBoxCenter()
-        # self.box_widget.SetMyactor(self.selected_actor)
-        #
-        # self.box_widget.PlaceWidget()
-        # self.box_widget.On()
 
     def Reset(self):
         # reset input ,box widget and actor

@@ -44,7 +44,7 @@ class BoxWidget(vtk.vtkBoxWidget):
         x_dim = xmax-xmin
         y_dim = ymax-ymin
         z_dim = zmax-zmin
-        return [center,x_dim,y_dim,z_dim,self.angle]
+        return [x_dim,y_dim,z_dim,*center,self.angle]
 
 class BorderWidget(vtk.vtkBorderWidget):
     def __init__(self,start,end,img_start,interactor):
@@ -58,7 +58,9 @@ class BorderWidget(vtk.vtkBorderWidget):
         # leftbottom righttop
 
 
-    def GetInfo(self):
+    def GetInfo(self,img_size):
+        self.coords[1]=img_size[1] - self.coords[1]
+        self.coords[3] = img_size[1]-self.coords[3]
         return self.coords
 
     def SetRenderer(self,renderer):

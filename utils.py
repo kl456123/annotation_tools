@@ -322,3 +322,10 @@ def GetBoundsCenter(bounds):
     center[1] = (bounds[2]+bounds[3])/2
     center[2] = (bounds[4]+bounds[5])/2
     return center
+
+
+def GetTruncatedAndOccluded():
+    return -1,-1
+
+def GetObserverAngle(box2d):
+    return -1
