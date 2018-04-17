@@ -1,6 +1,6 @@
 def parse_kitti_label(label_file):
     lines = open(label_file).readlines()
-    lines = map(lambda x: x.strip().split(), lines)
+    lines = [x.strip().split() for x in lines]
     objs = []
     for l in lines:
         o = {}
@@ -18,16 +18,16 @@ def parse_kitti_label(label_file):
     return objs
 
 def load_calibration(calib_file):
-    calib = map(lambda x: x.strip().split(), open(calib_file).readlines())
-    P0 = np.array(map(float,calib[0][1:])).reshape((3,4))
-    P1 = np.array(map(float,calib[1][1:])).reshape((3,4))
-    P2 = np.array(map(float,calib[2][1:])).reshape((3,4))
-    P3 = np.array(map(float,calib[3][1:])).reshape((3,4))
+    calib = [x.strip().split() for x in open(calib_file).readlines()]
+    P0 = np.array(list(map(float,calib[0][1:]))).reshape((3,4))
+    P1 = np.array(list(map(float,calib[1][1:]))).reshape((3,4))
+    P2 = np.array(list(map(float,calib[2][1:]))).reshape((3,4))
+    P3 = np.array(list(map(float,calib[3][1:]))).reshape((3,4))
     R0_rect = np.eye(4, dtype='float32')
-    R0_3x3 = np.array(map(float,calib[4][1:])).reshape((3,3))
+    R0_3x3 = np.array(list(map(float,calib[4][1:]))).reshape((3,3))
     R0_rect[:3,:3] = R0_3x3
     T_v2c = np.eye(4, dtype='float32')
-    T_v2c[:3,:] = np.array(map(float,calib[5][1:])).reshape((3,4))
+    T_v2c[:3,:] = np.array(list(map(float,calib[5][1:]))).reshape((3,4))
     T_vel_to_cam = np.dot(R0_rect, T_v2c)
     calibs = {'P0': P0, 'P1': P1, 'P2': P2,'P3': P3,
               'R0_rect': R0_rect,

@@ -1,18 +1,20 @@
 dataset:
   root_path: "./kitti"
-  image_path: "image_00/data"
-  velo_path: "velodyne_points/data"
+  image_path: "image_00"
+  velo_path: "velodyne_points"
   label_path: "labels"
   log_name: "log.pkl"
   label_type: "txt"
   pointcloud_reader:
    transform: Yes
+   calib_path: "./kitti/calib"
    color: "red"
   image_reader:
    type: "png"
 
 
 displayer:
+ mode: "annotation"
  img_view_port:
   - 0
   - 0.5

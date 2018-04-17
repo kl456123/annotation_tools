@@ -13,11 +13,12 @@ def main():
     img_bg = [0.1, 0.2, 0.4]
 
     dataset = Dataset(config_parser.GetDatasetConfig())
+    # dataset.data_idx = 2
 
     # Displayer
     displayer = StylePickerDisplayer(config_parser.GetDisplayerConfig())
     displayer.SetDataSet(dataset)
-
+    # displayer.SetLabelName("./kitti/gt/000003.txt")
     points_actor = PolyDataActor(dataset.pc_reader.GetOutputPort())
 
     # renderer

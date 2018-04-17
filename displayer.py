@@ -64,6 +64,10 @@ class ImageStylePickerRenderer(StylePickerRenderer):
         self.selection = selection
         self.border_widgets_idx = 0
         self.border_widgets = []
+        self.img_size = None
+
+    def SetImageSize(self,img_size):
+        self.img_size = img_size
 
     def IncreaseIdx(self):
         self.border_widgets_idx+=len(self.border_widgets)
@@ -167,14 +171,37 @@ class StylePickerDisplayer(Displayer):
         self.box_widgets = []
         self.classes = []
         self.StylePickerRenderers = []
-        print(cfg)
+        # self.orientation = []
+        # print(cfg)
         self.auto_save = cfg["auto_save"]
-
-        # self.poly_style_idx= 0
-        # self.img_style_idx=1
-        # self.need_save_idx = 0
+        self.mode = cfg["mode"]
 
         self.img_style_flag = False
+
+    def AddLabelWidget(self,labels):
+        factor = 1
+        for label in labels:
+            center = label["t"]
+            center[1]-=label["h"]/2.0
+            # center = [center[2],center[0],center[1]]
+            # new_center = [center[1],center[0],center[2]]
+            # center =   [1.74, 0.56 ,8.33]
+            # center = new_center
+            dims = label["h"],label["w"], label["l"]
+            dims = [factor*i for i in dims]
+
+            angle = label["yaw"]/math.pi*180
+            # angle=0
+            box = BoxWidget(self.pc_style_picker.renderer,self)
+            # print(dims)
+            box.SetCenterAndDim(center,dims,angle)
+            # box.SetPlaceFactor(10)
+            # bounds = GetBounds(center,dims)
+            # print(bounds)
+            # bounds = [-1, 1, -1, 1, -1, 1]
+            # box.PlaceWidget(bounds)
+            box.On()
+            self.box_widgets.append(box)
 
     def SetImgStylePicker(self,img_style_picker):
         self.img_style_picker = img_style_picker
@@ -186,7 +213,14 @@ class StylePickerDisplayer(Displayer):
 
     def InputClass(self):
         class_idx = input("please input index of classes:")
+        # print(type(class_idx))
         self.classes.append(class_idx)
+
+    def InputOrientation(self):
+        orientation_idx = input("please input index of plane:")
+        # print(type(orientation_idx))
+        self.box_widgets[-1].orientation = int(orientation_idx)
+        # self.orientation.append(orientation_idx)
 
     def CloseLastBoxWidget(self):
         # close border widgets
@@ -200,10 +234,18 @@ class StylePickerDisplayer(Displayer):
         title = "the {}th".format(str(self.dataset.data_idx+1))
         self.window.SetWindowName(title)
 
+    def SetLabelName(self,label_name):
+        self.label_name = label_name
+
     def Start(self):
         self.dataset.LoadNext()
         self.Render()
         self.SetWindowName()
+        self.img_style_picker.SetImageSize(self.dataset.GetImageSize())
+        if self.mode=="display":
+            self.dataset.LoadLabel(self.label_name)
+            self.dataset.ParseLabel()
+            self.AddLabelWidget(self.dataset.label)
         super().Start()
 
     def GetWidgetIdx(self):

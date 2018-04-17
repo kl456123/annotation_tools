@@ -108,7 +108,7 @@ class ImageStyleCallback(StyleCallback):
         new_original = []
         new_original.append(self.img_start[0]*size[0])
         new_original.append(self.img_start[1]*size[1])
-        img_size = [1242,375]
+        img_size = self.style_picker_renderer.img_size
 
         # translation of origin
         start[0] -=new_original[0]
@@ -124,7 +124,7 @@ class ImageStyleCallback(StyleCallback):
         return start+end
 
     def GenerateImplicifFunction(self,box):
-        P = GetIntrinsicMatrix()
+        P = self.displayer.dataset.pc_reader.calib["P2"]
         planes = get_frustum_points_of_box2d(P,box)
         return GenerateImplicitFunction(planes)
 
@@ -220,9 +220,12 @@ class DisplayerCallback(Callback):
 
         self.displayer.SetWindowName()
 
+        self.displayer.img_style_picker.SetImageSize(self.displayer.dataset.GetImageSize())
+
         # Off all the last box widgets
         self.displayer.CloseLastBoxWidget()
         self.displayer.classes = []
+        # self.orientation = []
 
         self.displayer.img_style_picker.IncreaseIdx()
 
@@ -240,13 +243,13 @@ class DisplayerCallback(Callback):
             # 1
             info.append(GetObserverAngle(box_3D))
             # 4
-            info.extend(box_2D[idx].GetInfo([1242,375]))
+            info.extend(box_2D[idx].GetInfo(self.displayer.dataset.GetImageSize()))
             # 7
             info.extend(box_3D.GetInfo())
 
             # fake score
             # 1
-            info.extend([1.0])
+            # info.extend([1.0])
 
             all_info.append(info)
 
@@ -275,6 +278,8 @@ class DisplayerCallback(Callback):
         self.displayer.AddBoxWidget()
 
         self.displayer.InputClass()
+
+        self.displayer.InputOrientation()
         # self.displayer.AddMyActor(self.displayer.selection.selected_actor)
 
         # reset selection box widget
@@ -307,7 +312,7 @@ class CameraCallback(Callback):
     def __init__(self,camera,interactor):
         super().__init__(camera,interactor=interactor)
         self.position = None
-        self.focal_point = [0,0,0]
+        self.focal_point = [0,0,0 ]
         self.viewup = None
         # init fps
         self.possible_fps = [(0,0,0)]
@@ -447,24 +452,32 @@ class SelectionCallback(Callback):
         self.angle_step = -1
         self.RotateBoxWidget()
 
+    # def TestAdd(self,obj,event):
+    #     print("adsga")
+
     def RotateBoxWidget(self):
         box_widget = self.obj.GetCurrentBoxWidget()
-
+        # center, dims = box_widget.GetCenterAndDims()
+        #         # print("center: ",center)
+        self.angle += self.angle_step
+        # box_widget.SetCenterAndDim(center,dims,self.angle)
         self.transform.Identity()
-
+        #
         center = GetBoundsCenter(box_widget.GetBounds())
-
-        # translation
+        #
+        # print("center: ",center)
+        # # translation
         self.transform.Translate([-center[0],-center[1],-center[2]])
-
-        # rotation
-        self.angle+=self.angle_step
+        #
+        # # rotation
+        #
         self.transform.RotateY(self.angle)
+        # self.transform.Scale()
         box_widget.SetAngle(self.angle)
-
-        # translation back
+        #
+        # # translation back
         self.transform.Translate(center)
-
+        #
         box_widget.SetTransform(self.transform)
 
     def Reset(self,obj,event):
@@ -475,3 +488,4 @@ class SelectionCallback(Callback):
         self.AddKeyObserver("x", self.CounterclockwiseRotate)
         self.AddKeyObserver("b",self.SetBoxCenterFocalPoint)
         self.AddKeyObserver("4",self.Reset)
+        # self.AddKeyObserver("a",self.TestAdd)

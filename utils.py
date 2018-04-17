@@ -7,6 +7,23 @@ def CreateBoxCoordsFromCorner(bottomleft,topright):
     bottomright = [topright[0],bottomleft[1],0]
     return [bottomleft,topleft,topright,bottomright]
 
+def load_calibration(calib_file):
+    calib = [x.strip().split() for x in open(calib_file).readlines()]
+    P0 = np.array(list(map(float,calib[0][1:]))).reshape((3,4))
+    P1 = np.array(list(map(float,calib[1][1:]))).reshape((3,4))
+    P2 = np.array(list(map(float,calib[2][1:]))).reshape((3,4))
+    P3 = np.array(list(map(float,calib[3][1:]))).reshape((3,4))
+    R0_rect = np.eye(4, dtype='float32')
+    R0_3x3 = np.array(list(map(float,calib[4][1:]))).reshape((3,3))
+    R0_rect[:3,:3] = R0_3x3
+    T_v2c = np.eye(4, dtype='float32')
+    T_v2c[:3,:] = np.array(list(map(float,calib[5][1:]))).reshape((3,4))
+    T_vel_to_cam = np.dot(R0_rect, T_v2c)
+    calibs = {'P0': P0, 'P1': P1, 'P2': P2,'P3': P3,
+              'R0_rect': R0_rect,
+              'T_v2c': T_v2c, 'T_vel_to_cam': T_vel_to_cam}
+    return calibs
+
 def mkVtkIdList(it):
     vil = vtk.vtkIdList()
 
@@ -14,16 +31,23 @@ def mkVtkIdList(it):
         vil.InsertNextId(int(i))
     return vil
 
-def read_from(filename,transform=False):
+def read_from(filename,calib_file, transform=False):
     scan = np.fromfile(filename, dtype=np.float32)
     scan = scan.reshape((-1, 4))
     # delete the last column and convert to homo
     scan[:,3] = 1
+
+    # R = np.array([[1,0,0,0],[0,0,1,0],[0,-1,0,0],[0,0,0,1]])
+    # scan = scan.dot(R.T)
     # scan = scan[:,:3]
     if not transform:
         return scan
-    extrinsic = GetExtrinsicMatrix()
-    scan = scan.dot(extrinsic.T)
+    calib = load_calibration(calib_file)
+    extrinsic = calib["T_vel_to_cam"]
+    # extrinsic = GetExtrinsicMatrix()
+    scan = (extrinsic.dot(scan.T)).T
+
+    # scan = scan.dot(extrinsic.T)
     scan = scan/scan[:,3].reshape((-1,1))
     return scan
 
@@ -323,9 +347,20 @@ def GetBoundsCenter(bounds):
     center[2] = (bounds[4]+bounds[5])/2
     return center
 
+def GetBounds(center,dims):
+    min_x = center[0]-dims[0]/2
+    max_x = center[0]+dims[0]/2
+    min_y = center[1]-dims[1]/2
+    max_y = center[1]+dims[1]/2
+    min_z = center[2]-dims[2]/2
+    max_z = center[2]+dims[2]/2
+    return (min_x,max_x,min_y,max_y,min_z,max_z)
 
 def GetTruncatedAndOccluded():
     return -1,-1
 
 def GetObserverAngle(box2d):
     return -1
+
+def GetDistanceFromTwoPoints(point1,point2):
+    return np.linalg.norm(point2-point1)

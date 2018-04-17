@@ -10,6 +10,10 @@ def LoadYAML(config):
         cfg = yaml.load(f)
     return cfg
 
+def ListFile(dir_path):
+    return [f for f in os.listdir(dir_path)
+     if os.path.isfile(os.path.join(dir_path, f))]
+
 def Update(d,u):
     for k,v in u.items():
         if isinstance(v,collections.Mapping):
@@ -51,7 +55,6 @@ class Dataset(object):
 
         pc_reader_cfg = cfg["pointcloud_reader"]
         img_reader_cfg = cfg["image_reader"]
-
 
         self.image_path = os.path.join(root_path,image_path)
         self.velo_path = os.path.join(root_path,velo_path)
@@ -96,7 +99,7 @@ class Dataset(object):
 
     def LoadImageNames(self):
         # filename(not include path)
-        image_names = os.listdir(self.image_path)
+        image_names = ListFile(self.image_path)
         image_names.sort(key= lambda x:int(x[:-4]))
         for img_name in image_names:
             self.image_names.append(os.path.join(self.image_path,img_name))
@@ -109,7 +112,8 @@ class Dataset(object):
 
 
     def LoadVeloNames(self):
-        velo_names = os.listdir(self.velo_path)
+        velo_names = ListFile(self.velo_path)
+
         velo_names.sort(key=lambda x:int(x[:-4]))
         for velo_name in velo_names:
             self.velo_names.append(os.path.join(self.velo_path,velo_name))
@@ -142,7 +146,11 @@ class Dataset(object):
         self.pc_reader.SetFileName(velo_name)
         self.img_reader.SetFileName(img_name)
         self.pc_reader.Update()
+
         self.img_reader.Update()
+
+    def GetImageSize(self):
+        return self.img_reader.GetOutput().GetDimensions()
             # yield self.pc_reader.GetOutputPort(),self.img_reader.GetOutputPort()
     def GetCurrentInfo(self):
         info = {}
@@ -163,12 +171,12 @@ class Dataset(object):
         print("Dataset status is saved! ")
 
 
-    def LoadLabel(self):
-        if not os.path.isfile(self.label_filename):
+    def LoadLabel(self,label_filename):
+        if not os.path.isfile(label_filename):
             print("label is not exist")
             self.label = []
             return
-        with open(self.label_filename,"rb") as f:
+        with open(label_filename,"rb") as f:
             if self.label_type=="pkl":
                 self.label = self.LoadFromPKL(f)
             else:
@@ -226,9 +234,9 @@ class Dataset(object):
     def SetColsLens(self):
         raise NotImplementedError
 
-class KITTIDataset(Dataset):
-    def SetClassMap(self,cls_map):
-        self.cls_map = cls_map
+# class KITTIDataset(Dataset):
+#     def SetClassMap(self,cls_map):
+#         self.cls_map = cls_map
 
     # def SetColsName(self):
     #     self.cols_name = ["type","truncated","occluded",

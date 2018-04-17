@@ -21,16 +21,26 @@ class ImageReaderFactory(object):
             return jpeg_reader
         else:
             raise TypeError()
-
+from utils import load_calibration
 class PointCloudReader(object):
     def __init__(self,cfg):
         self.transform = cfg["transform"]
         self.color_name = cfg["color"]
+        self.calib_path = cfg["calib_path"]
         self.vertexGlyphFilter = vtk.vtkVertexGlyphFilter()
+        self.calib = None
 
+    def GetCalibName(self,filename):
+        calib_filename =  os.path.splitext(os.path.basename(filename))[0]+".txt"
+        return os.path.join(self.calib_path,calib_filename)
+
+    def LoadCalib(self,calib_file):
+        self.calib = load_calibration(calib_file)
 
     def SetFileName(self,filename):
-        scans = read_from(filename, self.transform)
+        calib_name = self.GetCalibName(filename)
+        self.LoadCalib(calib_name)
+        scans = read_from(filename,calib_name,self.transform)
         polydata = GeneratePointPolyData(scans, self.color_name)
         self.vertexGlyphFilter.SetInputData(polydata)
 

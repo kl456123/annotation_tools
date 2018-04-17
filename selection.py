@@ -79,12 +79,12 @@ class Selection(object):
 
     def ResetWidgetAndActor(self):
         # reset actor
-        # if self.selected_actor is not None:
-        #     self.selected_actor.SetInput(self.input.GetOutputPort())
+        if self.selected_actor is not None:
+            self.selected_actor.SetInput(self.input.GetOutputPort())
         self.selected_actor = PolyDataActor(self.input.GetOutputPort())
         # pass on actor to renderer
         self.renderer.AddActor(self.GetActor())
-        re = vtk.vtkRenderer()
+        # re = vtk.vtkRenderer()
 
         # reset box widget
         if self.box_widget is not None:
