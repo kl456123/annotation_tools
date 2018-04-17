@@ -101,8 +101,6 @@ class BorderWidget(vtk.vtkBorderWidget):
 
 
     def GetInfo(self,img_size):
-        # print("img_size: ",img_size)
-        # print(self.coords)
         # note here fix bug
         a,b = self.coords[1],self.coords[3]
         self.coords[1]=img_size[1] - b
@@ -139,11 +137,9 @@ class BorderWidget(vtk.vtkBorderWidget):
         self.SetRepresentation(representation)
         self.SetInteractor(self.interactor)
         self.SelectableOff()
-        # self.SetEnabled(1)
-        # print(self.GetEnabled())
-        # self.ProcessEventsOff()
-        self.SetProcessEvents(False)
+        self.ProcessEventsOff()
         self.ResizableOff()
         self.On()
+
 
 

@@ -1,27 +1,5 @@
+# annotation_tools
 
-## 模式
-标注模式：标注工具可以直接在点云里面标注，也可以结合图片标注
-显示模式：读入label生成bbox可视化在三维点云空间
+tools of annotation for point clouds
 
-## 如何安装
-* 代码全由python写成，只需python解释器即可运行，同时需要安装vtk,pyaml(pip install vtk pyaml)
-然后python main.py即可
-
-## 一些按键
-
-- 确认添加box ：a
-- 在三维点云画框和旋转角度之间模式转换：r
-- 退出：q
-- 俯视：v
-- 正视：h
-- 调整box角度： z,x
-- 视角水平旋转和垂直旋转：方向键
-- 切换到选中区域中心: b(不会自动刷新，按v 和h 刷新)
-- 重选: 4（添加后无法重选改变）
-- 下一张: n
-- 不同高度切片: 1,2
-- 显示已添加物体box: i（再按i则不显示）
-
-## 配置
-无需配置，用默认配置即可，配置文件在config中
 

@@ -364,3 +364,4 @@ def GetObserverAngle(box2d):
 
 def GetDistanceFromTwoPoints(point1,point2):
     return np.linalg.norm(point2-point1)
+

@@ -54,7 +54,6 @@ class ImagePickerCallback(PickerCallback):
 
     def Start(self):
         pass
-
 class AreaPickerCallback(PickerCallback):
     def __init__(self,picker,displayer,selection):
         super().__init__(picker,interactor=displayer.interactor)
