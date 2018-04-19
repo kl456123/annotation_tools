@@ -43,8 +43,7 @@ class BoxWidget(vtk.vtkBoxWidget):
 
     def SetMyactor(self,myactor):
         self.myactor = myactor
-        # trans = vtk.vtkTransform()
-        # trans.Scale()
+        self.init_center = self.myactor.GetCenter()
         self.PlaceWidget(self.myactor.GetBounds())
 
     def GetCenter(self):
@@ -86,7 +85,7 @@ class BoxWidget(vtk.vtkBoxWidget):
             angle = -angle
         else:
             angle = 360-angle
-        return list(map(lambda x:round(x,2),[h,w,l,*center,angle*math.pi/180]))
+        return list(map(lambda x:round(x,2),[h,w,l,center[0],center[1],center[2],angle*math.pi/180]))
 
 class BorderWidget(vtk.vtkBorderWidget):
     def __init__(self,start,end,img_start,interactor):

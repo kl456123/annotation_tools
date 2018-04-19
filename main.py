@@ -42,6 +42,7 @@ def main():
 
     points = PolyDataStylePickerRenderer(point_renderer,selection)
     points.RegisterPickerCallback(displayer)
+    points.RegisterStyleCallback(displayer)
 
     displayer.SetPointCloudStylePicker(points)
 

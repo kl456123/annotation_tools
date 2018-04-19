@@ -177,9 +177,25 @@ class ImageStyleCallback(StyleCallback):
 class PointCloudStyleCallback(StyleCallback):
     def __init__(self,obj,debug=False,interactor=None):
         super().__init__(obj,debug,interactor)
+        self.mode = "view"
+
+
+    def ChangeWindowName(self,obj,event):
+        if self.mode == "view":
+            self.mode = "rubber"
+        else:
+            self.mode = "view"
+
+        window = self.interactor.GetRenderWindow()
+        title = window.GetWindowName()
+        title= title.split(":")[0]
+
+        title+=":"
+        title+=self.mode
+        window.SetWindowName(title)
 
     def Start(self):
-        pass
+        self.AddKeyObserver("r",self.ChangeWindowName)
 
 
 
@@ -456,27 +472,37 @@ class SelectionCallback(Callback):
 
     def RotateBoxWidget(self):
         box_widget = self.obj.GetCurrentBoxWidget()
-        # center, dims = box_widget.GetCenterAndDims()
-        #         # print("center: ",center)
+
+
+        init_center = box_widget.init_center
+
         self.angle += self.angle_step
-        # box_widget.SetCenterAndDim(center,dims,self.angle)
         self.transform.Identity()
         #
         center = GetBoundsCenter(box_widget.GetBounds())
-        #
-        # print("center: ",center)
-        # # translation
-        self.transform.Translate([-center[0],-center[1],-center[2]])
-        #
-        # # rotation
-        #
+
+        # get scale
+        t = vtk.vtkTransform()
+        box_widget.GetTransform(t)
+        scale = t.GetScale()
+
+
+        # create transform
+        self.transform.Identity()
+        self.transform.Translate([-init_center[0],-init_center[1],-init_center[2]])
+
+        # scale
+        self.transform.Scale(scale)
+
+        # rotation
         self.transform.RotateY(self.angle)
-        # self.transform.Scale()
+
         box_widget.SetAngle(self.angle)
-        #
-        # # translation back
+
+        # translation back
         self.transform.Translate(center)
-        #
+
+        # apply
         box_widget.SetTransform(self.transform)
 
     def Reset(self,obj,event):

@@ -49,6 +49,9 @@ class MyActor(object):
     def GetInputAttributes(self):
         return self.GetInput().GetPointData()
 
+    def GetCenter(self):
+        return self.actor.GetCenter()
+
     def VisibilityOff(self):
         self.actor.VisibilityOff()
 

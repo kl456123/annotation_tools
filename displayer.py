@@ -119,7 +119,7 @@ class PolyDataStylePickerRenderer(StylePickerRenderer):
         self.picker_callback = AreaPickerCallback(self.picker,displayer,self.selection)
 
     def RegisterStyleCallback(self,displayer):
-        pass
+        self.style_callback = PointCloudStyleCallback(self.style,interactor=displayer.interactor)
 
     # def CloseLastBoxWidget(self):
     #     self
@@ -231,7 +231,8 @@ class StylePickerDisplayer(Displayer):
         self.box_widgets = []
 
     def SetWindowName(self):
-        title = "the {}th".format(str(self.dataset.data_idx+1))
+        title = "the {}th:{}".format(str(self.dataset.data_idx+1),
+                                     self.pc_style_picker.style_callback.mode)
         self.window.SetWindowName(title)
 
     def SetLabelName(self,label_name):
