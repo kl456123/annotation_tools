@@ -55,6 +55,7 @@ class Dataset(object):
 
         pc_reader_cfg = cfg["pointcloud_reader"]
         img_reader_cfg = cfg["image_reader"]
+        resume = cfg["resume"]
 
         self.image_path = os.path.join(root_path,image_path)
         self.velo_path = os.path.join(root_path,velo_path)
@@ -78,7 +79,8 @@ class Dataset(object):
         self.num = len(self.image_names)
         self.SetLogName(log_filename)
 
-        self.LoadStatus()
+        if resume:
+            self.LoadStatus()
         self.CheckFinish()
 
     def InitDir(self):
@@ -129,17 +131,45 @@ class Dataset(object):
             # return None,None
         return self.image_names[self.data_idx],self.velo_names[self.data_idx]
 
+    def GetPrevDataName(self):
+        assert not self.data_idx==-1,print("it is the first data! ")
+        self.data_idx-=1
+
+        return self.image_names[self.data_idx],self.velo_names[self.data_idx]
+
+
     def GetDataNameGenerator(self):
         for img_name,velo_name in zip(self.image_names,self.velo_names):
             yield img_name,velo_name
 
+    def LoadPrev(self,mode="display"):
+        img_name,velo_name = self.GetPrevDataName()
 
-    def LoadNext(self):
+        self.label_filename = self.GenerateLabelName(img_name)
+
+        if mode=="display":
+            self.LoadLabel(self.label_filename)
+            self.ParseLabel()
+        # work finish
+        # if img_name is None:
+        #     return
+        self.pc_reader.SetFileName(velo_name)
+        self.img_reader.SetFileName(img_name)
+        self.pc_reader.Update()
+
+        self.img_reader.Update()
+
+    def LoadNext(self,mode="display"):
         # data_names_gen = self.GetDataNameGenerator()
         # for img_name , velo_name in data_names_gen:
         img_name,velo_name = self.GetNextDataName()
 
+
         self.label_filename = self.GenerateLabelName(img_name)
+
+        if mode=="display":
+            self.LoadLabel(self.label_filename)
+            self.ParseLabel()
         # work finish
         # if img_name is None:
         #     return
@@ -176,7 +206,11 @@ class Dataset(object):
             print("label is not exist")
             self.label = []
             return
-        with open(label_filename,"rb") as f:
+        if self.label_type =="pkl":
+            mode = "rb"
+        else:
+            mode = "r"
+        with open(label_filename,mode) as f:
             if self.label_type=="pkl":
                 self.label = self.LoadFromPKL(f)
             else:

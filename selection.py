@@ -27,13 +27,13 @@ from callback import SelectionCallback
 ######################################
 
 class Selection(object):
-    def __init__(self,input_filter,renderer,displayer,point_renderer,debug=False):
+    def __init__(self,input_filter,displayer,point_renderer,debug=False):
         self.selected_actor = None
         self.box_widget = None
         self.SetInput(input_filter)
 
         # set renderer
-        self.SetRenderer(renderer)
+        # self.SetRenderer(renderer)
 
         # set displayer
         self.SetDisplayer(displayer)
@@ -45,7 +45,7 @@ class Selection(object):
 
         self._continue = False
 
-        self.displayer = displayer
+        # self.displayer = displayer
 
         self.box_centers = [0,0,0]
         self.point_renderer = point_renderer
@@ -60,11 +60,11 @@ class Selection(object):
     def GetCurrentBoxWidget(self):
         return self.box_widget
 
-    def SetRenderer(self,renderer):
-        # bind renderer to selection
-        # so that actor that selection make can pass on to the renderer
-        # for render immediately
-        self.renderer = renderer
+    # def SetRenderer(self,renderer):
+    #     # bind renderer to selection
+    #     # so that actor that selection make can pass on to the renderer
+    #     # for render immediately
+    #     self.renderer = renderer
 
     def SetDisplayer(self,displayer):
         # bind displayer to selection
@@ -83,14 +83,14 @@ class Selection(object):
             self.selected_actor.SetInput(self.input.GetOutputPort())
         self.selected_actor = PolyDataActor(self.input.GetOutputPort())
         # pass on actor to renderer
-        self.renderer.AddActor(self.GetActor())
+        self.point_renderer.AddActor(self.GetActor())
         # re = vtk.vtkRenderer()
 
         # reset box widget
         if self.box_widget is not None:
             self.box_widget.Off()
-            del self.box_widget
-        self.box_widget = BoxWidget(self.point_renderer,self.displayer)
+            # del self.box_widget
+        self.box_widget = BoxWidget(self.point_renderer,self.displayer,self.input)
 
 
     def Reset(self):
@@ -148,21 +148,6 @@ class Selection(object):
         # set the last filter to the input of mapper
         self.selected_actor.SetInput(self.last_filter.GetOutputPort())
         self.selected_actor.Update()
-    #
-    # def PrintNumberOfLastInputPoints(self,index=-1):
-    #     if len(self.extract_geometry_filters)<-index:
-    #         return
-    #     self.extract_geometry_filters[index].Update()
-    #     polydata = self.extract_geometry_filters[index].GetInput()
-    #     print("num of last input points(index: {}): ".format(index),polydata.GetNumberOfPoints())
-    #
-    # def PrintNumberOfAllInputPoints(self):
-    #     for index,flt in enumerate(self.extract_geometry_filters):
-    #         flt.Update()
-    #         polydata = flt.GetInput()
-    #         print("num of last input points(index: {}): ".format(index), polydata.GetNumberOfPoints())
-    #         print("ImplicitFunction(index: {}): ".format(index),flt.GetImplicitFunction())
-
 
     def Color(self,color_name="green"):
 

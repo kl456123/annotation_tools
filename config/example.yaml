@@ -1,6 +1,8 @@
+dataset:
+ resume: No
 displayer:
  img_bg:
-  - 1
-  - 1
-  - 1
-# mode: "display"
+  - 0.1
+  - 0.2
+  - 0.7
+ mode: "display"

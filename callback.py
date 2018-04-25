@@ -55,29 +55,28 @@ class ImagePickerCallback(PickerCallback):
     def Start(self):
         pass
 class AreaPickerCallback(PickerCallback):
-    def __init__(self,picker,displayer,selection):
+    def __init__(self,picker,displayer):
         super().__init__(picker,interactor=displayer.interactor)
         self.displayer = displayer
-        self.selection = selection
+        # self.selection = displayer.selection
 
     def EndPickEvent(self,obj,event):
         # fix bug (have to use deep copy here)
         frustum = DeepCopyPlanes(self.obj.GetFrustum())
 
-        self.selection.AddFilter(frustum)
-
+        self.displayer.selection.AddFilter(frustum)
 
         # color it
-        self.selection.Color()
+        self.displayer.selection.Color()
 
         # render again
         self.displayer.Render()
 
     def SelectionContinueOff(self,obj,event):
-        self.selection.SetContinue(False)
+        self.displayer.selection.SetContinue(False)
 
     def SelectionContinueOn(self,obj,event):
-        self.selection.SetContinue(True)
+        self.displayer.selection.SetContinue(True)
 
     def Start(self):
         # add key observer
@@ -94,10 +93,10 @@ class StyleCallback(Callback):
 
 
 class ImageStyleCallback(StyleCallback):
-    def __init__(self,obj,style_picker_renderer, displayer=None,selection=None,myactor=None,img_start=[0,0],debug=False):
+    def __init__(self,obj,style_picker_renderer, displayer=None,selection=None,img_start=[0,0],debug=False):
         super().__init__(obj,debug,displayer.interactor)
         self.displayer = displayer
-        self.myactor = myactor
+        # self.myactor = myactor
         self.img_start = img_start
         self.selection = selection
         self.style_picker_renderer = style_picker_renderer
@@ -132,9 +131,12 @@ class ImageStyleCallback(StyleCallback):
         start = list(self.obj.GetStartPosition())
         end = list(self.obj.GetEndPosition())
         print("press start end: ",start,end)
+        if start==end:
+            print("Don't just click,It just draw a point!")
+            return
         ######################################
         #####generate box in 2D image#########
-        border_widget = BorderWidget(start,end,self.img_start,self.displayer.interactor)
+        border_widget = BorderWidget(start,end,self.img_start,self.style_picker_renderer.renderer,self.displayer.interactor)
         # border_widget.SetRenderer(self.style_picker_renderer.renderer)
         self.style_picker_renderer.border_widgets.append(border_widget)
 
@@ -168,11 +170,19 @@ class ImageStyleCallback(StyleCallback):
         current_box.Off()
         del current_box
 
+    # def ToggleStyle(self,obj,event):
+    #     print("image style status:",self.obj.GetEnabled())
+    #     if self.obj.GetEnabled():
+    #         self.obj.Off()
+    #     else:
+    #         self.obj.On()
+
     def Start(self):
         # pass
         self.AddEventObserver("SelectionChangedEvent",self.SelectionChangedEvent)
         self.AddKeyObserver("o",self.ToggleWidgetProcess)
         self.AddKeyObserver("4",self.Reset)
+        # self.AddKeyObserver("8",self.ToggleStyle)
 
 class PointCloudStyleCallback(StyleCallback):
     def __init__(self,obj,debug=False,interactor=None):
@@ -218,61 +228,52 @@ class DisplayerCallback(Callback):
 
         self.AddKeyObserver("a",self.AddSelectionBoxWidget)
         self.AddKeyObserver("i",self.ToggleDisplayerBoxWidgets)
-        self.AddKeyObserver("0",self.SetLabel)
+        self.AddKeyObserver("0",self.SaveLabel)
         self.AddKeyObserver("9",self.PrintLabel)
         self.AddKeyObserver("n",self.Next)
         self.AddKeyObserver("j",self.ToggleDisplayerCurrentBoxWidget)
+        self.AddKeyObserver("m",self.Prev)
+
+    def Prev(self,obj,event):
+        if self.displayer.dataset.data_idx==0:
+            print("it is the first data! ")
+            return
+        if self.displayer.auto_save:
+            self.displayer.SaveLabel()
+
+        self.displayer.dataset.LoadPrev(self.displayer.mode)
+        self.displayer.Reset()
+
+        self.displayer.Init()
 
     def Next(self,obj,event):
-        # save the last label
+        """
+        process:
+        1. save the last label
+        2. load next data and label(if have)
+        3. reset inner state
+        4. init inner state according to the input data
+        """
 
+        # save
         if self.displayer.auto_save:
-            self.SetLabel(None,None)
-        self.displayer.dataset.SaveLabel()
+            self.displayer.SaveLabel()
 
         # next
-        self.displayer.dataset.LoadNext()
+        self.displayer.dataset.LoadNext(self.displayer.mode)
 
-        self.displayer.SetWindowName()
+        self.displayer.Reset()
 
-        self.displayer.img_style_picker.SetImageSize(self.displayer.dataset.GetImageSize())
+        self.displayer.Init()
 
-        # Off all the last box widgets
-        self.displayer.CloseLastBoxWidget()
-        self.displayer.classes = []
-        # self.orientation = []
+    def SaveLabel(self,obj,event):
+        self.displayer.SaveLabel()
 
-        self.displayer.img_style_picker.IncreaseIdx()
+
 
     def SetLabel(self,obj,event):
+        self.displayer.SetLabel()
 
-        all_info = []
-        box_2D = self.displayer.img_style_picker.border_widgets
-        for idx, box_3D in  enumerate(self.displayer.box_widgets):
-            # the num is 16 in all
-            info = []
-            # 1
-            info.append(self.displayer.classes[idx])
-            # 2
-            info.extend(GetTruncatedAndOccluded())
-            # 1
-            info.append(GetObserverAngle(box_3D))
-            # 4
-            info.extend(box_2D[idx].GetInfo(self.displayer.dataset.GetImageSize()))
-            # 7
-            info.extend(box_3D.GetInfo())
-
-            # fake score
-            # 1
-            # info.extend([1.0])
-
-            all_info.append(info)
-
-        self.displayer.dataset.SetLabel(all_info)
-        print("INFO:Save Label success! ")
-
-
-        self.displayer.dataset.SaveStatus()
 
     def PrintLabel(self,obj,event):
         self.displayer.dataset.PrintLabel()
@@ -280,13 +281,14 @@ class DisplayerCallback(Callback):
 
     def ToggleDisplayerBoxWidgets(self,obj,event):
         flag = None
-        widget_idx = self.displayer.GetWidgetIdx()
-        print("widget idx: ",widget_idx)
-        for idx,boxwidget in enumerate(self.displayer.box_widgets[widget_idx:]):
+
+        for idx,boxwidget in enumerate(self.displayer.box_widgets):
             if idx==0:
                 flag = boxwidget.GetEnabled()
                 continue
             boxwidget.SetEnabled(not flag)
+
+        # self.displayer.AdjustBoxWidgetsColor()
 
     def AddSelectionBoxWidget(self,obj,event):
         # add current box widget of selection
@@ -326,15 +328,15 @@ class DisplayerCallback(Callback):
 class CameraCallback(Callback):
     def __init__(self,camera,interactor):
         super().__init__(camera,interactor=interactor)
-        self.position = None
+        self.position = [0,-100,0]
         self.focal_point = [0,0,0 ]
-        self.viewup = None
+        self.viewup = [-1,0,0]
         # init fps
         self.possible_fps = [(0,0,0)]
         self.idx_fps = 0
         self.high = 0.1
         self.lower_step = 10
-        self.clipping_range = [self.high,100000]
+        self.clipping_range = [self.high,1000]
 
     def LowerSlice(self,obj,event):
         self.high+=self.lower_step
@@ -402,7 +404,7 @@ class CameraCallback(Callback):
     def Start(self):
         self.AddKeyObserver("v",self.SetVerticalView)
         self.AddKeyObserver("h",self.SetHorizontalView)
-        self.AddKeyObserver("p",self.PrintCamera)
+        # self.AddKeyObserver("p",self.PrintCamera)
         self.AddKeyObserver("Right",self.RightRotation)
         self.AddKeyObserver("Left",self.LeftRotation)
         self.AddKeyObserver("Down",self.DownRotation)
@@ -412,35 +414,9 @@ class CameraCallback(Callback):
         # self.AddKeyObserver("m",self.CounterclockwiseRollRotation)
         self.AddKeyObserver("1",self.LowerSlice)
         self.AddKeyObserver("2",self.HigherSlice)
-        self.AddKeyObserver("n",self.ResetPossibleFocalPoint)
+        # self.AddKeyObserver("n",self.ResetPossibleFocalPoint)
 
-# class BoxWidgetCallback(Callback):
-#     def __init__(self,obj,interactor):
-#         super(BoxWidgetCallback, self).__init__(obj,interactor=interactor)
-#
-#     def ColorInsidePoints():
-#         print(selectEnclosedPoints.GetOutput())
-#         # newcolors = colors.
-#         for i in range(numofpoints):
-#             if selectEnclosedPoints.IsInside(i):
-#                 print("Color")
-#                 colors.SetTypedTuple(i, blue)
-#             else:
-#                 colors.SetTypedTuple(i, red)
-#                 # colors[i] = green
-#         # pointsPolyData.GetPointData().SetScalars(colors)
-#
-#     def UnColorInsidePoints():
-#         for i in range(numofpoints):
-#             print("UnColor")
-#             colors.SetTypedTuple(i, red)
-#
-#     def EndInteractionEvent(self,obj,event):
-#         pass
 
-    #
-    # def Start(self):
-    #     self.AddEventObserver("EndInteractionEvent",self.EndInteractionEvent)
 
 class SelectionCallback(Callback):
     def __init__(self,selection,debug=False):
@@ -514,3 +490,17 @@ class SelectionCallback(Callback):
         self.AddKeyObserver("b",self.SetBoxCenterFocalPoint)
         self.AddKeyObserver("4",self.Reset)
         # self.AddKeyObserver("a",self.TestAdd)
+
+
+class BoxWidgetCallback(Callback):
+
+    def UpdateSurface(self,obj,event):
+        if self.obj.selection is None:
+            return
+        polydata = vtk.vtkPolyData()
+        obj.GetPolyData(polydata)
+        self.obj.selection.SetSurfaceData(polydata)
+        self.obj.selection.Update()
+
+    def Start(self):
+        self.AddEventObserver("InteractionEvent",self.UpdateSurface)

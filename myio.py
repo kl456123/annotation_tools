@@ -21,6 +21,9 @@ class ImageReaderFactory(object):
             return jpeg_reader
         else:
             raise TypeError()
+
+
+
 from utils import load_calibration
 class PointCloudReader(object):
     def __init__(self,cfg):
@@ -45,20 +48,14 @@ class PointCloudReader(object):
         self.vertexGlyphFilter.SetInputData(polydata)
 
 
-    # def GeneratePointPolyData(self):
-    #     scans = read_from(self.filename, self.transform)
-    #     # self.scans = scans
-    #     polydata = GeneratePointPolyData(scans,self.color_name)
-    #     # self.polydata = polydata
-    #     # self.colors = polydata.GetPointData().GetScalars()
-    #
-    #     self.vertexGlyphFilter.SetInputData(polydata)
-
     def GetOutputPort(self):
         return self.vertexGlyphFilter.GetOutputPort()
 
     def GetOutput(self):
         return self.vertexGlyphFilter.GetOutput()
+
+    def GetFilter(self):
+        return self.vertexGlyphFilter
 
     def Update(self):
         self.vertexGlyphFilter.Update()

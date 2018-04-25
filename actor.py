@@ -7,6 +7,8 @@ from abc import ABCMeta,abstractclassmethod
 class MyActor(object):
     def __init__(self,polydata):
         super().__init__()
+        self.mapper = None
+        self.actor = None
         self.SetMapper()
         self.SetInput(polydata)
         self.SetActor()
@@ -18,13 +20,12 @@ class MyActor(object):
 
     def SetInput(self,polydata):
 
-        if isinstance(polydata, vtk.vtkAlgorithmOutput):
+        if isinstance(polydata, vtk.vtkAlgorithm):
+            self.mapper.SetInputConnection(polydata.GetOutputPort())
+        elif isinstance(polydata,vtk.vtkAlgorithmOutput):
             self.mapper.SetInputConnection(polydata)
         elif isinstance(polydata, vtk.vtkDataObject):
             self.mapper.SetInputData(polydata)
-        # retrieve data again
-        # there may be bug here
-        # self.Update()
 
     def GetPoint(self,pid):
         points_data = self.GetInput()
@@ -87,39 +88,16 @@ class ImageActor(MyActor):
     def SetColorLevel(self):
         self.mapper.SetColorLevel(127.5)
 
+
+
 class PolyDataActor(MyActor):
-    def __init__(self,polydata,dataset=None,colors=None):
+    def __init__(self,polydata):
         super().__init__(polydata)
-        self.polydata = dataset
-        self.colors = colors
 
         self.actor.SetMapper(self.mapper)
 
     def SetMapper(self):
         self.mapper = vtk.vtkPolyDataMapper()
-
-    # def ColorInsideFrustum(self,box,new=True):
-    #     P = GetIntrinsicMatrix()
-    #     points = self.GetAllPoints()
-    #     mask = get_frustum_points_of_box2d(points,P,box)
-    #     if new:
-    #         # return a new polydata
-    #         selection = points[mask]
-    #         return GeneratePointPolyFilter(selection)
-    #     else:
-    #         # change its attr
-    #         self.ColorPointsByMask(mask)
-
-    # def ColorPointsByMask(self,mask,color_name="red"):
-    #     # colors = self.GetScalars()
-    #     colors = GenerateColors(self.GetNumberOfPoints(), color_name=color_name)
-    #     # colors = self.colors
-    #     ids = np.where(mask)[0]
-    #     for i in ids:
-    #         colors.SetTypedTuple(i,[0, 255, 0])
-    #     self.SetScalars(colors)
-        # self.polydata.Modified()
-        # self.Update()
 
     def SetActor(self):
         self.actor = vtk.vtkActor()

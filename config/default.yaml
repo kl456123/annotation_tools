@@ -5,6 +5,7 @@ dataset:
   label_path: "labels"
   log_name: "log.pkl"
   label_type: "txt"
+  resume: Yes
   pointcloud_reader:
    transform: Yes
    calib_path: "./kitti/calib"
@@ -15,20 +16,29 @@ dataset:
 
 displayer:
  mode: "annotation"
- img_view_port:
-  - 0
-  - 0.5
-  - 1.0
-  - 1.0
- poly_view_port:
-  - 0
-  - 0
-  - 1.0
-  - 0.5
- img_bg:
-  - 0.1
-  - 0.2
-  - 0.4
+ window_size:
+# max size
+  - 1536
+  - 864
+ img:
+   view_port:
+    - 0
+    - 0.5
+    - 1.0
+    - 1.0
+   bg:
+    - 0.1
+    - 0.2
+    - 0.4
+ pc:
+   view_port:
+    - 0
+    - 0
+    - 1.0
+    - 0.5
+ selection:
+   debug: No
+
  auto_save: Yes
 
 
