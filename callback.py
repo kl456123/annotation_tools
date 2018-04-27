@@ -451,6 +451,9 @@ class SelectionCallback(Callback):
 
 
         init_center = box_widget.init_center
+        if init_center is None:
+            print("please select region first! ")
+            return
 
         self.angle += self.angle_step
         self.transform.Identity()

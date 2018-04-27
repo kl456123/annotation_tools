@@ -20,6 +20,7 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.SetInput(input)
         self.selected = False
         self.selection = None
+        self.init_center = None
 
     def SetInput(self,input):
         self.input = input
@@ -71,6 +72,7 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.SetCurrentRenderer(renderer)
         # self.GetRepresentation().SetRenderer(renderer)
         self.SetHandleSize(0.001)
+        self.RotationEnabledOff()
 
     def SetCenterAndDim(self,center,dims,angle):
         self.PlaceWidget(*[-0.5,0.5,-0.5,0.5,-0.5,0.5])
