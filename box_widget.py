@@ -141,6 +141,8 @@ class BorderWidget(vtk.vtkBorderWidget):
         self.SetRenderer(renderer)
         self.interactor = interactor
         self.img_start = img_start
+        self.abs_start = None
+        self.abs_end = None
         self.SetInteractor(self.interactor)
         self.Generate(start,end)
 
@@ -157,6 +159,7 @@ class BorderWidget(vtk.vtkBorderWidget):
         box = np.concatenate([pos,pos2])
 
         size = list(self.interactor.GetRenderWindow().GetSize())
+        # print("size: ",size)
 
         # view_port size
         size[1] -=self.img_start[1] * size[1]
@@ -180,6 +183,24 @@ class BorderWidget(vtk.vtkBorderWidget):
     def SetRenderer(self,renderer):
         self.SetCurrentRenderer(renderer)
 
+    def SetPosition(self):
+        size = list(self.interactor.GetRenderWindow().GetSize())
+        new_original = []
+        new_original.append(self.img_start[0] * size[0])
+        new_original.append(self.img_start[1] * size[1])
+
+        size[1] -= new_original[1]
+        tmp = [self.abs_start[0] / size[0], self.abs_start[1] / size[1]]
+
+        representation = vtk.vtkBorderRepresentation()
+        # representation
+
+        representation.SetPosition(tmp[0], tmp[1])
+        representation.SetPosition2(self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
+        # representation.MovingOff()
+        self.SetRepresentation(representation)
+        # self.SetPosition()
+
     def Generate(self,start,end):
         new_original = []
         size = list(self.interactor.GetRenderWindow().GetSize())
@@ -189,11 +210,16 @@ class BorderWidget(vtk.vtkBorderWidget):
         new_start = [start[0],end[1]-new_original[1]]
         new_end = [end[0],start[1]-new_original[1]]
 
+        self.abs_start = new_start
+        self.abs_end = new_end
+
         self.coords+=new_start
         self.coords+=new_end
 
         size[1] -= new_original[1]
         tmp = [new_start[0] / size[0], new_start[1] / size[1]]
+
+
 
         representation = vtk.vtkBorderRepresentation()
         # representation

@@ -190,6 +190,11 @@ class StylePickerDisplayer(Displayer):
         self.mode = cfg["mode"]
 
         self.window.SetSize(cfg["window_size"])
+        self.window_size = tuple(cfg["window_size"])
+
+        # hard code
+        # register window callback
+        self.window.AddObserver("ModifiedEvent",self._WindowCallback)
 
         self.img_style_flag = False
 
@@ -202,6 +207,20 @@ class StylePickerDisplayer(Displayer):
         self.SetUpSelection(cfg["selection"])
 
         self.SetUpImgStylePickerRenderer(cfg["img"])
+
+    def _WindowCallback(self,obj,event):
+        size = self.window.GetSize()
+        if size==self.window_size:
+            return
+        self.window_size = size
+        # print("last size: ",self.window_size)
+        # print("now size:",size)
+        for border in self.img_style_picker.border_widgets:
+            border.SetPosition()
+            # b = vtk.vtkBorderWidget()
+            # b.GetBorderRepresentation()
+            # b.SetRenderer()
+            # border.GetBorderRepresentation().SetRenderer(self.img_style_picker.renderer)
 
     def SetUpSelection(self,selection_cfg):
         # build selection

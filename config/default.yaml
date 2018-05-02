@@ -18,8 +18,8 @@ displayer:
  mode: "annotation"
  window_size:
 # max size
-  - 1536
-  - 864
+  - 1200
+  - 800
  img:
    view_port:
     - 0
