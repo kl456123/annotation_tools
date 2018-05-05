@@ -57,6 +57,12 @@ class Selection(object):
     def RegisterSelectionCallback(self):
         self.selection_callback = SelectionCallback(self)
 
+    def IsObjectSelected(self):
+        return self.GetCurrentBoxWidget().selected
+
+    # def SetBorderWidget(self,borderwidget):
+    #     self
+
     def GetCurrentBoxWidget(self):
         return self.box_widget
 
@@ -94,6 +100,10 @@ class Selection(object):
 
 
     def Reset(self):
+
+        if not self.IsObjectSelected():
+            #no more new thing need to reset
+            return
         # reset input ,box widget and actor
         self.ResetHistory()
         self.ResetWidgetAndActor()

@@ -3,9 +3,6 @@ import vtk
 widgets = []
 
 
-
-
-
 from myio import *
 from actor import *
 
@@ -41,7 +38,6 @@ def main():
     # representation.SetPosition2(0.1, 0.1)
     # borderWidget.SetRepresentation(representation)
 
-
     # borderWidget.CreateDefaultRepresentation()
     # borderWidget.SelectableOff()
 
@@ -63,10 +59,11 @@ def main():
         borderWidget = vtk.vtkBorderWidget()
 
         representation.SetPosition(tmp[0], tmp[1])
-        representation.SetPosition2(new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
+        representation.SetPosition2(
+            new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
 
         representation.SetMoving(0)
-        print("Moving status: ",representation.GetMoving())
+        print("Moving status: ", representation.GetMoving())
         borderWidget.SetRepresentation(representation)
         borderWidget.SetInteractor(interactor)
         borderWidget.ResizableOn()
@@ -93,32 +90,30 @@ def main():
         # representation.ResizableOff()
         # representation = vtk.vtkBorderRepresentation()
         # representation
+        borderWidget.SelectableOff()
 
         representation.SetPosition(tmp[0], tmp[1])
-        representation.SetPosition2(new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
-        # new_start = [start[0],end[1]]
-        # new_end = [end[0],start[1]]
-        # print(start,end)
-        # print(new_start, new_end)
-        # print(new_start[0]/size[0],new_start[1]/size[1])
-        # print(new_end[0]/size[0],new_end[1]/size[1])
+        representation.SetPosition2(
+            new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
 
-        # # representation
-        # tmp = [new_start[0]/size[0],new_start[1]/size[1]]
-        # representation.SetPosition(tmp[0],tmp[1])
-        # representation.SetPosition2(new_end[0]/size[0]-tmp[0],new_end[1]/size[1]-tmp[1])
-        representation.SetMoving(0)
-        print("Moving status: ",representation.GetMoving())
-        borderWidget.SetRepresentation(representation)
+        # representation.SetMoving(1)
+        # print("Moving status: ", representation.GetMoving())
+        borderWidget.CreateDefaultRepresentation()
+        r = borderWidget.GetBorderRepresentation()
+        r.SetPosition(tmp[0], tmp[1])
+        r.SetPosition2(
+            new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
+        # borderWidget.SetRepresentation(representation)
         borderWidget.SetInteractor(interactor)
-        borderWidget.ResizableOn()
+        # borderWidget.ResizableOff()
         # borderWidget.CreateDefaultRepresentation()
-        # borderWidget.SelectableO()
+        # borderWidget.SelectableOn()
         borderWidget.On()
+        print(borderWidget)
         renderWindow.Render()
         widgets.append(borderWidget)
 
-    # style.AddObserver("SelectionChangedEvent",stylecallback)
+    style.AddObserver("SelectionChangedEvent", stylecallback)
     interactor.SetInteractorStyle(style)
     renderer.AddActor(actor)
     renderer.AddActor(img_actor.actor)
@@ -128,5 +123,6 @@ def main():
     # borderWidget.On()
 
     interactor.Start()
+
 
 main()

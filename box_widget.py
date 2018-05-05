@@ -7,6 +7,7 @@ class Widget(object):
 import numpy as np
 from actor import *
 # from callback import BoxWidgetCallback
+# from callback import BorderWidgetCallback
 
 class BoxWidget(vtk.vtkBoxWidget):
     def __init__(self,renderer,displayer,input=None):
@@ -22,6 +23,7 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.selection = None
         self.init_center = None
 
+
     def SetInput(self,input):
         self.input = input
 
@@ -31,11 +33,8 @@ class BoxWidget(vtk.vtkBoxWidget):
     def AdjustColor(self,flag):
         if self.myactor is None:
 
-            # selectEnclosedPoints.Update()
-
             self.selection = vtk.vtkExtractGeometry()
-            # self.selection.SetSurfaceConnection(polydata)
-            # self.selection.SetImplicitFunction(func)
+
             self.selection.SetInputConnection(self.input.GetOutputPort())
             filter = vtk.vtkVertexGlyphFilter()
             filter.SetInputConnection(self.selection.GetOutputPort())
@@ -69,10 +68,11 @@ class BoxWidget(vtk.vtkBoxWidget):
     def Generate(self,renderer):
         self.SetInteractor(self.interactor)
         self.SetPlaceFactor(1)
-        self.SetCurrentRenderer(renderer)
+        self.SetDefaultRenderer(renderer)
         # self.GetRepresentation().SetRenderer(renderer)
         self.SetHandleSize(0.001)
         self.RotationEnabledOff()
+        self.KeyPressActivationOff()
 
     def SetCenterAndDim(self,center,dims,angle):
         self.PlaceWidget(*[-0.5,0.5,-0.5,0.5,-0.5,0.5])
@@ -135,14 +135,22 @@ class BoxWidget(vtk.vtkBoxWidget):
         return list(map(lambda x:round(x,2),[h,w,l,center[0],center[1],center[2],angle*math.pi/180]))
 
 class BorderWidget(vtk.vtkBorderWidget):
-    def __init__(self,start,end,img_start,renderer,interactor):
+    def __init__(self,start,end,img_start,renderer,displayer):
         super().__init__()
         self.coords = []
         self.SetRenderer(renderer)
-        self.interactor = interactor
+        self.interactor = displayer.interactor
         self.img_start = img_start
+        self.abs_start = None
+        self.abs_end = None
+        self.box_widget = None
         self.SetInteractor(self.interactor)
         self.Generate(start,end)
+        print("borderwidget callback registered!")
+        self.RegisterCallBack(displayer)
+
+    def BindBoxWidget(self,box_widget):
+        self.box_widget = box_widget
 
 
     def GetInfo(self,img_size):
@@ -157,6 +165,7 @@ class BorderWidget(vtk.vtkBorderWidget):
         box = np.concatenate([pos,pos2])
 
         size = list(self.interactor.GetRenderWindow().GetSize())
+        # print("size: ",size)
 
         # view_port size
         size[1] -=self.img_start[1] * size[1]
@@ -178,7 +187,21 @@ class BorderWidget(vtk.vtkBorderWidget):
         return res1
 
     def SetRenderer(self,renderer):
-        self.SetCurrentRenderer(renderer)
+        self.SetDefaultRenderer(renderer)
+
+    def SetPosition(self):
+        size = list(self.interactor.GetRenderWindow().GetSize())
+        new_original = []
+        new_original.append(self.img_start[0] * size[0])
+        new_original.append(self.img_start[1] * size[1])
+
+        size[1] -= new_original[1]
+        tmp = [self.abs_start[0] / size[0], self.abs_start[1] / size[1]]
+
+        representation = self.GetBorderRepresentation()
+
+        representation.SetPosition(tmp[0], tmp[1])
+        representation.SetPosition2(self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
 
     def Generate(self,start,end):
         new_original = []
@@ -189,26 +212,36 @@ class BorderWidget(vtk.vtkBorderWidget):
         new_start = [start[0],end[1]-new_original[1]]
         new_end = [end[0],start[1]-new_original[1]]
 
+        self.abs_start = new_start
+        self.abs_end = new_end
+
         self.coords+=new_start
         self.coords+=new_end
 
         size[1] -= new_original[1]
         tmp = [new_start[0] / size[0], new_start[1] / size[1]]
 
-        representation = vtk.vtkBorderRepresentation()
-        # representation
+        self.CreateDefaultRepresentation()
+        representation = self.GetBorderRepresentation()
 
         representation.SetPosition(tmp[0],tmp[1])
         representation.SetPosition2(new_end[0]/size[0]-tmp[0],new_end[1]/size[1]-tmp[1])
         # representation.MovingOff()
         self.SetRepresentation(representation)
         self.SetInteractor(self.interactor)
-        # self.SelectableOff()
+        self.SelectableOff()
 
-        # self.ProcessEventsOff()
         self.ResizableOn()
-        # print("resize: ",self.GetResizable())
+        self.KeyPressActivationOff()
+        self.ManagesCursorOff()
+
+        print("border widget activated! ")
         self.On()
+        print(self)
+
+    def RegisterCallBack(self,displayer):
+        from callback import BorderWidgetCallback
+        self.callback = BorderWidgetCallback(self,displayer)
 
 
 

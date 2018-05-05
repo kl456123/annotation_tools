@@ -122,8 +122,9 @@ class Dataset(object):
 
 
     def GetNextDataName(self):
+        print("data idx: ", self.data_idx)
         self.data_idx += 1
-        print("data idx: ",self.data_idx)
+
         if self.data_idx>self.num-1:
             print("all data is processed! ")
             import sys
@@ -184,7 +185,7 @@ class Dataset(object):
             # yield self.pc_reader.GetOutputPort(),self.img_reader.GetOutputPort()
     def GetCurrentInfo(self):
         info = {}
-        info["data_idx"] = self.data_idx
+        info["data_idx"] = self.data_idx-1
         return info
 
     def LoadStatus(self):

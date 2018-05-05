@@ -46,3 +46,16 @@ class MyStyleCallBack(Callback):
 
     def StartListen(self):
         self.AddObserver("EndInteractionEvent",self.EndInteractionEvent)
+
+
+
+# class MyInteractorStyleRubberBandPick(vtk.vtkInteractorStyleRubberBandPick):
+#     def __init__(self,parent=None):
+#         super().__init__()
+#         self.AddObserver("KeyPressEvent",self.KeyPressEvent)
+#
+#     def KeyPressEvent(self, obj, event):
+#         # self.OnKeyPressDown()
+#         print("asdg")
+#         print(obj)
+

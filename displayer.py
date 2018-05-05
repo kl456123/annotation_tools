@@ -68,9 +68,30 @@ class ImageStylePickerRenderer(StylePickerRenderer):
         self.border_widgets_idx = 0
         self.border_widgets = []
         self.img_size = None
+        self.cur_border_widget = None
+
+        # default is the last one to mark "selected"
+        self.selected_border_idx = -1
 
     def SetImageSize(self,img_size):
         self.img_size = img_size
+
+    def SetSelectedIdx(self,idx):
+        #TODO check it is legal first
+        self.selected_border_idx = idx
+
+    def SetCurrentBorderWidget(self,border_widget):
+        self.cur_border_widget = border_widget
+
+    def GetCurrentBorderWidget(self):
+        if self.cur_border_widget:
+            return self.cur_border_widget
+        # if len(self.border_widgets)>0:
+        #     return self.border_widgets[-1]
+        else:
+            print("ERROR: border widget is not selected")
+            return
+
 
     def IncreaseIdx(self):
         self.border_widgets_idx+=len(self.border_widgets)
@@ -96,6 +117,12 @@ class ImageStylePickerRenderer(StylePickerRenderer):
         pass
         # self.picker_callback = ImagePickerCallback(self.picker)
 
+    def On(self):
+        self.style.On()
+
+    def Off(self):
+        self.style.Off()
+
     def CloseLastBorderWidget(self):
         for border in self.border_widgets:
             border.Off()
@@ -104,11 +131,25 @@ class ImageStylePickerRenderer(StylePickerRenderer):
         self.border_widgets = []
         # self.renderer.RemoveAllViewProps()
 
+    # def SetBorderWidget(self,border_widget):
+    #     self
+
 
 class PolyDataStylePickerRenderer(StylePickerRenderer):
     def __init__(self,renderer,style=None,picker=None):
         # self.selection = selection
         super().__init__(renderer,style,picker)
+        self.cur_box_widget = None
+
+    def SetCurrentBoxWidget(self,box_widget):
+        self.cur_box_widget = box_widget
+
+    def GetCurrentBoxWidget(self):
+        if self.cur_box_widget:
+            return self.cur_box_widget
+        else:
+            print("ERROR: box widget is not selected")
+            return None
 
     def SetPicker(self,picker=None):
         if picker:
@@ -130,7 +171,7 @@ class PolyDataStylePickerRenderer(StylePickerRenderer):
         self.picker_callback = AreaPickerCallback(self.picker,displayer)
 
     def RegisterStyleCallback(self,displayer):
-        self.style_callback = PointCloudStyleCallback(self.style,interactor=displayer.interactor)
+        self.style_callback = PointCloudStyleCallback(self.style,self,displayer=displayer)
 
     # def CloseLastBoxWidget(self):
     #     self
@@ -190,6 +231,11 @@ class StylePickerDisplayer(Displayer):
         self.mode = cfg["mode"]
 
         self.window.SetSize(cfg["window_size"])
+        self.window_size = tuple(cfg["window_size"])
+
+        # hard code
+        # register window callback
+        self.window.AddObserver("ModifiedEvent",self._WindowCallback)
 
         self.img_style_flag = False
 
@@ -202,6 +248,20 @@ class StylePickerDisplayer(Displayer):
         self.SetUpSelection(cfg["selection"])
 
         self.SetUpImgStylePickerRenderer(cfg["img"])
+
+    def _WindowCallback(self,obj,event):
+        size = self.window.GetSize()
+        if size==self.window_size:
+            return
+        self.window_size = size
+        # print("last size: ",self.window_size)
+        # print("now size:",size)
+        for border in self.img_style_picker.border_widgets:
+            border.SetPosition()
+            # b = vtk.vtkBorderWidget()
+            # b.GetBorderRepresentation()
+            # b.SetRenderer()
+            # border.GetBorderRepresentation().SetRenderer(self.img_style_picker.renderer)
 
     def SetUpSelection(self,selection_cfg):
         # build selection
@@ -274,8 +334,23 @@ class StylePickerDisplayer(Displayer):
         self.classes = []
         self.pc_style_picker.renderer.ResetPossibleFocalPoint()
 
+        # remove all but pc and selected actor in pc_renderer
+        self.pc_style_picker.renderer.RemoveAllViewProps()
+        points_actor = PolyDataActor(self.dataset.pc_reader.GetFilter())
+        self.pc_style_picker.renderer.AddMyActor(points_actor)
+        self.selection.ResetWidgetAndActor()
+        # self.pc_style_picker.renderer
+
+        # remove all but img in img_renderer
+        # self.img_style_picker.renderer.RemoveAllViewProps()
+        # img_actor = ImageActor(self.dataset.img_reader.GetOutputPort())
+        # self.img_style_picker.renderer.AddMyActor(img_actor)
+        # r = vtk.vtkRenderer()
+        # r.RemoveRemoveAllViewProps
+
         # clean actor in renderer
-        print("num: ",self.pc_style_picker.renderer.GetNumberOfPropsRendered())
+        print("num of props in pc: ",self.pc_style_picker.renderer.GetNumberOfPropsRendered())
+        print("num of props in img: ", self.img_style_picker.renderer.GetNumberOfPropsRendered())
 
     def Init(self):
         # init parameters according to loaded data
@@ -365,7 +440,9 @@ class StylePickerDisplayer(Displayer):
                                          box2d[2:],
                                          img_view_port[:2],
                                          self.img_style_picker.renderer,
-                                         self.interactor)
+                                         self)
+            # bind with it
+            border_widget.BindBoxWidget(box)
 
             # border_widget.SetCurrentRenderer(self.img_style_picker.renderer)
             self.img_style_picker.border_widgets.append(border_widget)
@@ -415,6 +492,8 @@ class StylePickerDisplayer(Displayer):
         if save:
             self.SaveLabel()
 
+
+
         self.dataset.LoadNext(self.mode)
 
         self.Reset()
@@ -446,7 +525,8 @@ class StylePickerDisplayer(Displayer):
 
     def AddBoxWidget(self):
         box_widget = self.selection.GetCurrentBoxWidget()
-        if not box_widget.selected:
+
+        if not self.selection.IsObjectSelected():
             print("please select first")
             return
         self.box_widgets.append(box_widget)
