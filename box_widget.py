@@ -203,6 +203,24 @@ class BorderWidget(vtk.vtkBorderWidget):
         representation.SetPosition(tmp[0], tmp[1])
         representation.SetPosition2(self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
 
+    def SetPosition(self):
+        size = list(self.interactor.GetRenderWindow().GetSize())
+        new_original = []
+        new_original.append(self.img_start[0] * size[0])
+        new_original.append(self.img_start[1] * size[1])
+
+        size[1] -= new_original[1]
+        tmp = [self.abs_start[0] / size[0], self.abs_start[1] / size[1]]
+
+        representation = vtk.vtkBorderRepresentation()
+        # representation
+
+        representation.SetPosition(tmp[0], tmp[1])
+        representation.SetPosition2(self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
+        # representation.MovingOff()
+        self.SetRepresentation(representation)
+        # self.SetPosition()
+
     def Generate(self,start,end):
         new_original = []
         size = list(self.interactor.GetRenderWindow().GetSize())
