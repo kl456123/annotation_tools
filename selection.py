@@ -106,6 +106,8 @@ class Selection(object):
             return
         # reset input ,box widget and actor
         self.ResetHistory()
+
+
         self.ResetWidgetAndActor()
 
         # exit from continue mode

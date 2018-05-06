@@ -81,7 +81,16 @@ class ImageStylePickerRenderer(StylePickerRenderer):
         self.selected_border_idx = idx
 
     def SetCurrentBorderWidget(self,border_widget):
-        self.cur_border_widget = border_widget
+        if border_widget is None:
+            self.cur_border_widget = None
+        else:
+
+            if self.cur_border_widget:
+                self.cur_border_widget.UnchangeColor()
+
+            border_widget.ChangeColor()
+            self.cur_border_widget = border_widget
+
 
     def GetCurrentBorderWidget(self):
         if self.cur_border_widget:
@@ -426,8 +435,8 @@ class StylePickerDisplayer(Displayer):
             a, b = box2d[1], box2d[3]
             img_size = self.img_style_picker.img_size
 
-            box2d[3] = img_size[1] - a
-            box2d[1] = img_size[1] - b
+            box2d[1] = img_size[1] - a
+            box2d[3] = img_size[1] - b
 
             img_view_port = self.img_style_picker.renderer.GetViewport()
             img_start = img_view_port[:2]

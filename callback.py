@@ -164,15 +164,15 @@ class ImageStyleCallback(StyleCallback):
         # render again
         self.displayer.Render()
 
-    def ToggleWidgetProcess(self,obj,event):
-        flag = self.style_picker_renderer.border_widgets[0].GetProcessEvents()
-        for idx ,border_widget in enumerate(self.style_picker_renderer.border_widgets):
-            # if idx==0:
-            #     flag = border_widget.GetProcessEvents()
-            if flag:
-                border_widget.ProcessEventsOff()
-            else:
-                border_widget.ProcessEventsOn()
+    # def ToggleWidgetProcess(self,obj,event):
+    #     flag = self.style_picker_renderer.border_widgets[0].GetProcessEvents()
+    #     for idx ,border_widget in enumerate(self.style_picker_renderer.border_widgets):
+    #         # if idx==0:
+    #         #     flag = border_widget.GetProcessEvents()
+    #         if flag:
+    #             border_widget.ProcessEventsOff()
+    #         else:
+    #             border_widget.ProcessEventsOn()
 
     def Reset(self,obj,event):
         # idx = self.style_picker_renderer.selected_border_idx
@@ -182,6 +182,9 @@ class ImageStyleCallback(StyleCallback):
             if current_border is border:
                 border.Off()
                 del self.style_picker_renderer.border_widgets[idx]
+                self.style_picker_renderer.SetCurrentBorderWidget(None)
+                break
+
 
     # def ToggleStyle(self,obj,event):
     #     print("image style status:",self.obj.GetEnabled())
@@ -193,7 +196,7 @@ class ImageStyleCallback(StyleCallback):
     def Start(self):
         # pass
         self.AddEventObserver("SelectionChangedEvent",self.SelectionChangedEvent)
-        self.AddKeyObserver("o",self.ToggleWidgetProcess)
+        # self.AddKeyObserver("o",self.ToggleWidgetProcess)
         self.AddKeyObserver("4",self.Reset)
         self.AddKeyObserver("5",self.ToggleStyle)
         # self.AddKeyObserver("8",self.ToggleStyle)
@@ -261,6 +264,14 @@ class DisplayerCallback(Callback):
         self.AddKeyObserver("n",self.Next)
         self.AddKeyObserver("j",self.ToggleDisplayerCurrentBoxWidget)
         self.AddKeyObserver("m",self.Prev)
+        self.AddKeyObserver("r",self.ToggleMode)
+        self.AddKeyObserver("q",self.BeforeQuit)
+
+    def BeforeQuit(self,obj,event):
+        self.displayer.dataset.SaveStatus()
+
+    def ToggleMode(self,obj,event):
+        print(self.displayer.pc_style_picker.style.GetEnabled())
 
     def Prev(self,obj,event):
         if self.displayer.dataset.data_idx==0:
@@ -298,8 +309,6 @@ class DisplayerCallback(Callback):
     def SaveLabel(self,obj,event):
         self.displayer.SaveLabel()
 
-
-
     def SetLabel(self,obj,event):
         self.displayer.SetLabel()
 
@@ -331,6 +340,10 @@ class DisplayerCallback(Callback):
 
         self.displayer.InputOrientation()
         # self.displayer.AddMyActor(self.displayer.selection.selected_actor)
+
+        # pass box widget to pc_style_picker
+        self.displayer.pc_style_picker.SetCurrentBoxWidget(
+            self.displayer.selection.GetCurrentBoxWidget())
 
         # reset selection box widget
         self.displayer.selection.Reset()
@@ -555,5 +568,10 @@ class BorderWidgetCallback(Callback):
         # set border widget for image renderer style
         self.displayer.img_style_picker.SetCurrentBorderWidget(self.obj)
 
+        # self.obj.ChangeColor()
+
         # set box widget for pc renderer style
         self.displayer.pc_style_picker.SetCurrentBoxWidget(self.obj.box_widget)
+        # print(self.obj.GetBorderRepresentation().GetInteractionState())
+
+        self.displayer.Render()

@@ -73,14 +73,21 @@ class MyActor(object):
         pass
 
 class ImageActor(MyActor):
+    def __init__(self,polydata):
+        super().__init__(polydata=polydata)
+        self.SetDisplayToBackGround()
 
     def SetMapper(self):
         self.mapper = vtk.vtkImageMapper()
         self.SetColorLevel()
         self.SetColorWindow()
 
+
     def SetActor(self):
         self.actor = vtk.vtkActor2D()
+
+    def SetDisplayToBackGround(self):
+        self.actor.GetProperty().SetDisplayLocationToBackground()
 
     def SetColorWindow(self):
         self.mapper.SetColorWindow(255)

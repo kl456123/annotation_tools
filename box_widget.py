@@ -27,7 +27,14 @@ class BoxWidget(vtk.vtkBoxWidget):
     def SetInput(self,input):
         self.input = input
 
+    def ChangeColor(self):
+        self.GetOutlineProperty().SetColor([1, 1, 0])
+
+    def UnchangeColor(self):
+        self.GetOutlineProperty().SetColor([1, 1, 1])
+
     def RegisterWidgetCallback(self,displayer):
+        from callback import BoxWidgetCallback
         self.box_widget_callback = BoxWidgetCallback(self,interactor=displayer.interactor)
 
     def AdjustColor(self,flag):
@@ -203,23 +210,23 @@ class BorderWidget(vtk.vtkBorderWidget):
         representation.SetPosition(tmp[0], tmp[1])
         representation.SetPosition2(self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
 
-    def SetPosition(self):
-        size = list(self.interactor.GetRenderWindow().GetSize())
-        new_original = []
-        new_original.append(self.img_start[0] * size[0])
-        new_original.append(self.img_start[1] * size[1])
+    # def SetPosition(self):
+        # size = list(self.interactor.GetRenderWindow().GetSize())
+        # new_original = []
+        # new_original.append(self.img_start[0] * size[0])
+        # new_original.append(self.img_start[1] * size[1])
 
-        size[1] -= new_original[1]
-        tmp = [self.abs_start[0] / size[0], self.abs_start[1] / size[1]]
+        # size[1] -= new_original[1]
+        # tmp = [self.abs_start[0] / size[0], self.abs_start[1] / size[1]]
 
-        representation = vtk.vtkBorderRepresentation()
-        # representation
+        # representation = vtk.vtkBorderRepresentation()
+        # # representation
 
-        representation.SetPosition(tmp[0], tmp[1])
-        representation.SetPosition2(self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
-        # representation.MovingOff()
-        self.SetRepresentation(representation)
-        # self.SetPosition()
+        # representation.SetPosition(tmp[0], tmp[1])
+        # representation.SetPosition2(self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
+        # # representation.MovingOff()
+        # self.SetRepresentation(representation)
+        # # self.SetPosition()
 
     def Generate(self,start,end):
         new_original = []
@@ -244,18 +251,27 @@ class BorderWidget(vtk.vtkBorderWidget):
 
         representation.SetPosition(tmp[0],tmp[1])
         representation.SetPosition2(new_end[0]/size[0]-tmp[0],new_end[1]/size[1]-tmp[1])
-        # representation.MovingOff()
-        self.SetRepresentation(representation)
+        representation.NeedToRenderOn()
+        representation.MovingOff()
+        # self.SetRepresentation(representation)
         self.SetInteractor(self.interactor)
         self.SelectableOff()
+        # self.SetResizable(1)
 
-        self.ResizableOn()
+        # self.ResizableOn()
         self.KeyPressActivationOff()
         self.ManagesCursorOff()
 
         print("border widget activated! ")
         self.On()
-        print(self)
+        # print(self.GetBorderRepresentation().GetInteractionState())
+        # print(representation)
+
+    def ChangeColor(self):
+        self.GetBorderRepresentation().GetBorderProperty().SetColor([1,1,0])
+
+    def UnchangeColor(self):
+        self.GetBorderRepresentation().GetBorderProperty().SetColor([1, 1, 1])
 
     def RegisterCallBack(self,displayer):
         from callback import BorderWidgetCallback
