@@ -403,10 +403,16 @@ class StylePickerDisplayer(Displayer):
     def SaveLabel(self):
         # if self.auto_save:
             # save to list(in memory not in disk)
-        self.SetLabel()
+        if self.mode == "display":
+            print("WARN: you should not save label in display mode! Turn off "
+                  "auto save to swallow this warning")
+        elif self.mode == "annotation":
+            self.SetLabel()
 
-        # in disk
-        self.dataset.SaveLabel()
+            # in disk
+            self.dataset.SaveLabel()
+        else:
+            raise ValueError("mode is not recognized!")
 
 
     def AddLabelWidgets(self,labels):

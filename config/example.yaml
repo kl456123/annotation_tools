@@ -1,5 +1,6 @@
 dataset:
  resume: Yes
+ label_path: "labels"
 displayer:
  img_bg:
   - 0.1

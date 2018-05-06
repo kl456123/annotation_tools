@@ -307,6 +307,7 @@ class DisplayerCallback(Callback):
         self.displayer.Init()
 
     def SaveLabel(self,obj,event):
+
         self.displayer.SaveLabel()
 
     def SetLabel(self,obj,event):
