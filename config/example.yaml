@@ -1,9 +1,23 @@
 dataset:
- resume: Yes
+ resume: No
+ # velodyne_only: Yes
  label_path: "labels"
+ # pointcloud_reader:
+  # transform: No
+
+# prefix_name: "000006"
+ # filter_classes:
+  # - "Car"
 displayer:
  img_bg:
   - 0.1
   - 0.2
   - 0.7
+ # pc:
+  # view_port:
+   # - 0.0
+   # - 0.0
+   # - 1.0
+   # - 1.0
  mode: "display"
+ auto_save: No

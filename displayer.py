@@ -1,11 +1,12 @@
 import vtk
 from actor import MyActor
 from callback import *
-from abc import  ABCMeta,abstractclassmethod
+from abc import ABCMeta, abstractclassmethod
 from box_widget import *
 
+
 class Renderer(vtk.vtkRenderer):
-    def __init__(self,actors=[],camera=None):
+    def __init__(self, actors=[], camera=None):
         super().__init__()
         # actor
         for myactor in actors:
@@ -14,11 +15,12 @@ class Renderer(vtk.vtkRenderer):
         # camera
         self.SetCamera(camera)
 
-    def AddMyActor(self,myactor):
-        assert isinstance(myactor, MyActor), print("Only MyActor type is accepted")
+    def AddMyActor(self, myactor):
+        assert isinstance(myactor,
+                          MyActor), print("Only MyActor type is accepted")
         self.AddActor(myactor.actor)
 
-    def SetCamera(self,camera):
+    def SetCamera(self, camera):
         if camera:
             self.camera = camera
         else:
@@ -28,41 +30,50 @@ class Renderer(vtk.vtkRenderer):
         self.camera.SetFocalPoint(0, 0, 0)
         self.SetActiveCamera(self.camera)
 
-    def SetFocalPoint(self,focal_point):
+    def SetFocalPoint(self, focal_point):
         self.camera_callback.focal_point = focal_point
 
-    def AddPossibleFocalPoint(self,possible_fp):
+    def AddPossibleFocalPoint(self, possible_fp):
         self.camera_callback.AddPossibleFocalPoint(possible_fp)
 
     def ResetPossibleFocalPoint(self):
-        self.camera_callback.ResetPossibleFocalPoint(None,None)
+        self.camera_callback.ResetPossibleFocalPoint(None, None)
 
-    def RegisterCameraCallback(self,displayer):
-        self.camera_callback = CameraCallback(self.camera,displayer.interactor)
+    def RegisterCameraCallback(self, displayer):
+        self.camera_callback = CameraCallback(self.camera,
+                                              displayer.interactor)
+
 
 class StylePickerRenderer(object):
     __metaclass__ = ABCMeta
-    def __init__(self,renderer,style=None,picker=None):
+
+    def __init__(self, renderer, style=None, picker=None):
         self.renderer = renderer
         # self.SetRenderer(myactors)
         self.SetPicker(picker)
         self.SetStyle(style)
 
-    def SetPicker(self,picker=None):
+    def SetPicker(self, picker=None):
         pass
 
-    def SetStyle(self,style=None):
+    def SetStyle(self, style=None):
         pass
 
-    def RegisterPickerCallback(self,displayer):
+    def RegisterPickerCallback(self, displayer):
         pass
 
-    def RegisterStyleCallback(self,displayer):
+    def RegisterStyleCallback(self, displayer):
         pass
+
 
 class ImageStylePickerRenderer(StylePickerRenderer):
-    def __init__(self, renderer,selection,style=None, picker=None,myactor=None):
-        super().__init__(renderer,style,picker)
+    def __init__(self,
+                 renderer,
+                 selection,
+                 style=None,
+                 picker=None,
+                 myactor=None):
+        super().__init__(renderer, style, picker)
         self.myactor = myactor
         self.selection = selection
         self.border_widgets_idx = 0
@@ -73,14 +84,14 @@ class ImageStylePickerRenderer(StylePickerRenderer):
         # default is the last one to mark "selected"
         self.selected_border_idx = -1
 
-    def SetImageSize(self,img_size):
+    def SetImageSize(self, img_size):
         self.img_size = img_size
 
-    def SetSelectedIdx(self,idx):
-        #TODO check it is legal first
+    def SetSelectedIdx(self, idx):
+        # TODO check it is legal first
         self.selected_border_idx = idx
 
-    def SetCurrentBorderWidget(self,border_widget):
+    def SetCurrentBorderWidget(self, border_widget):
         if border_widget is None:
             self.cur_border_widget = None
         else:
@@ -91,7 +102,6 @@ class ImageStylePickerRenderer(StylePickerRenderer):
             border_widget.ChangeColor()
             self.cur_border_widget = border_widget
 
-
     def GetCurrentBorderWidget(self):
         if self.cur_border_widget:
             return self.cur_border_widget
@@ -101,28 +111,28 @@ class ImageStylePickerRenderer(StylePickerRenderer):
             print("ERROR: border widget is not selected")
             return
 
-
     def IncreaseIdx(self):
-        self.border_widgets_idx+=len(self.border_widgets)
+        self.border_widgets_idx += len(self.border_widgets)
 
-    def SetStyle(self,style=None):
+    def SetStyle(self, style=None):
         if style:
             self.style = style
         else:
             self.style = vtk.vtkInteractorStyleRubberBand2D()
         # self.style.Off()
 
-    def SetPicker(self,picker=None):
+    def SetPicker(self, picker=None):
         if picker:
             self.picker = picker
         else:
             self.picker = None
 
-    def RegisterStyleCallback(self,displayer,img_start):
+    def RegisterStyleCallback(self, displayer, img_start):
         # pass
-        self.style_callback = ImageStyleCallback(self.style,self,displayer,self.selection,img_start)
+        self.style_callback = ImageStyleCallback(self.style, self, displayer,
+                                                 self.selection, img_start)
 
-    def RegisterPickerCallback(self,displayer):
+    def RegisterPickerCallback(self, displayer):
         pass
         # self.picker_callback = ImagePickerCallback(self.picker)
 
@@ -145,12 +155,12 @@ class ImageStylePickerRenderer(StylePickerRenderer):
 
 
 class PolyDataStylePickerRenderer(StylePickerRenderer):
-    def __init__(self,renderer,style=None,picker=None):
+    def __init__(self, renderer, style=None, picker=None):
         # self.selection = selection
-        super().__init__(renderer,style,picker)
+        super().__init__(renderer, style, picker)
         self.cur_box_widget = None
 
-    def SetCurrentBoxWidget(self,box_widget):
+    def SetCurrentBoxWidget(self, box_widget):
         self.cur_box_widget = box_widget
 
     def GetCurrentBoxWidget(self):
@@ -160,27 +170,27 @@ class PolyDataStylePickerRenderer(StylePickerRenderer):
             print("ERROR: box widget is not selected")
             return None
 
-    def SetPicker(self,picker=None):
+    def SetPicker(self, picker=None):
         if picker:
             self.picker = picker
         else:
             self.picker = vtk.vtkAreaPicker()
 
-    def SetSelection(self,selection):
+    def SetSelection(self, selection):
         self.selection = selection
 
-    def SetStyle(self,style=None):
+    def SetStyle(self, style=None):
         if style:
             self.style = style
         else:
             self.style = vtk.vtkInteractorStyleRubberBandPick()
 
+    def RegisterPickerCallback(self, displayer):
+        self.picker_callback = AreaPickerCallback(self.picker, displayer)
 
-    def RegisterPickerCallback(self,displayer):
-        self.picker_callback = AreaPickerCallback(self.picker,displayer)
-
-    def RegisterStyleCallback(self,displayer):
-        self.style_callback = PointCloudStyleCallback(self.style,self,displayer=displayer)
+    def RegisterStyleCallback(self, displayer):
+        self.style_callback = PointCloudStyleCallback(
+            self.style, self, displayer=displayer)
 
     # def CloseLastBoxWidget(self):
     #     self
@@ -197,7 +207,7 @@ class Displayer(object):
 
         self.RegisterDisplayerCallback()
 
-    def AddRenderer(self,renderer):
+    def AddRenderer(self, renderer):
         if renderer:
             self.window.AddRenderer(renderer)
 
@@ -207,9 +217,8 @@ class Displayer(object):
         # self.window.SetFullScreen()
         # print("screen size: ",self.window.GetSize())
 
-    def SetDataSet(self,dataset):
+    def SetDataSet(self, dataset):
         self.dataset = dataset
-
 
     def SetInteractor(self):
         self.interactor = vtk.vtkRenderWindowInteractor()
@@ -218,7 +227,6 @@ class Displayer(object):
     def Render(self):
         self.window.Render()
 
-
     def Start(self):
         self.interactor.Initialize()
         self.interactor.Start()
@@ -226,11 +234,16 @@ class Displayer(object):
     def RegisterDisplayerCallback(self):
         pass
 
+
 from selection import *
+
+
 class StylePickerDisplayer(Displayer):
-    def __init__(self,dataset,cfg):
+    def __init__(self, dataset, cfg):
         super().__init__()
         self.current_renderer = None
+        self.img_style_picker = None
+        self.pc_style_picker = None
         self.current_idx = None
         self.box_widgets = []
         self.classes = []
@@ -244,7 +257,7 @@ class StylePickerDisplayer(Displayer):
 
         # hard code
         # register window callback
-        self.window.AddObserver("ModifiedEvent",self._WindowCallback)
+        self.window.AddObserver("ModifiedEvent", self._WindowCallback)
 
         self.img_style_flag = False
 
@@ -255,32 +268,35 @@ class StylePickerDisplayer(Displayer):
         self.SetUpPCStylePickerRenderer(cfg["pc"])
 
         self.SetUpSelection(cfg["selection"])
+        if not self.dataset.velodyne_only:
+            self.SetUpImgStylePickerRenderer(cfg["img"])
 
-        self.SetUpImgStylePickerRenderer(cfg["img"])
-
-    def _WindowCallback(self,obj,event):
+    def _WindowCallback(self, obj, event):
         size = self.window.GetSize()
-        if size==self.window_size:
+        if size == self.window_size:
             return
         self.window_size = size
         # print("last size: ",self.window_size)
         # print("now size:",size)
-        for border in self.img_style_picker.border_widgets:
-            border.SetPosition()
+        if not self.dataset.velodyne_only:
+
+            for border in self.img_style_picker.border_widgets:
+                border.SetPosition()
             # b = vtk.vtkBorderWidget()
             # b.GetBorderRepresentation()
             # b.SetRenderer()
             # border.GetBorderRepresentation().SetRenderer(self.img_style_picker.renderer)
 
-    def SetUpSelection(self,selection_cfg):
+    def SetUpSelection(self, selection_cfg):
         # build selection
-        selection = Selection(self.dataset.pc_reader.GetFilter(),
-                              displayer=self,
-                              point_renderer=self.pc_style_picker.renderer,
-                              debug=selection_cfg["debug"])
+        selection = Selection(
+            self.dataset.pc_reader.GetFilter(),
+            displayer=self,
+            point_renderer=self.pc_style_picker.renderer,
+            debug=selection_cfg["debug"], velo_only=self.dataset.velodyne_only)
         self.SetSelection(selection)
 
-    def SetUpImgStylePickerRenderer(self,img_cfg):
+    def SetUpImgStylePickerRenderer(self, img_cfg):
         # build img style picker renderer
         view_port = img_cfg["view_port"]
         bg = img_cfg["bg"]
@@ -291,18 +307,18 @@ class StylePickerDisplayer(Displayer):
         img_actor = ImageActor(self.dataset.img_reader.GetOutputPort())
         img_renderer.AddMyActor(img_actor)
 
-        img_style_picker = ImageStylePickerRenderer(img_renderer, self.selection)
+        img_style_picker = ImageStylePickerRenderer(img_renderer,
+                                                    self.selection)
 
         # register callback for img_style_picker
-        img_style_picker.RegisterStyleCallback(self, [view_port[0], view_port[1]])
+        img_style_picker.RegisterStyleCallback(self,
+                                               [view_port[0], view_port[1]])
         img_style_picker.renderer.SetViewport(view_port)
         img_style_picker.renderer.SetBackground(bg)
 
         self.SetImgStylePicker(img_style_picker)
 
-
-
-    def SetUpPCStylePickerRenderer(self,pc_cfg):
+    def SetUpPCStylePickerRenderer(self, pc_cfg):
         # build pc style picker renderer
 
         # actor
@@ -312,6 +328,7 @@ class StylePickerDisplayer(Displayer):
         point_renderer = Renderer([points_actor])
 
         # register callback for point renderer
+        point_renderer.camera.in_velo = True if self.dataset.velodyne_only else False
         point_renderer.RegisterCameraCallback(self)
 
         # pc_style_picker
@@ -325,14 +342,11 @@ class StylePickerDisplayer(Displayer):
 
         pc_style_picker.renderer.SetViewport(view_port)
 
-
         self.SetPointCloudStylePicker(pc_style_picker)
-
-
 
     def AdjustBoxWidgetsColor(self):
         for idx, box_widget in enumerate(self.box_widgets):
-            if idx==0:
+            if idx == 0:
                 box_widget.AdjustColor(False)
             else:
                 box_widget.AdjustColor(True)
@@ -358,8 +372,10 @@ class StylePickerDisplayer(Displayer):
         # r.RemoveRemoveAllViewProps
 
         # clean actor in renderer
-        print("num of props in pc: ",self.pc_style_picker.renderer.GetNumberOfPropsRendered())
-        print("num of props in img: ", self.img_style_picker.renderer.GetNumberOfPropsRendered())
+        # print("num of props in pc: ",
+        # self.pc_style_picker.renderer.GetNumberOfPropsRendered())
+        # print("num of props in img: ",
+        # self.img_style_picker.renderer.GetNumberOfPropsRendered())
 
     def Init(self):
         # init parameters according to loaded data
@@ -367,14 +383,16 @@ class StylePickerDisplayer(Displayer):
         # init window title
         self.Render()
         self.SetWindowName()
-        self.img_style_picker.SetImageSize(self.dataset.GetImageSize())
+        if not self.dataset.velodyne_only:
+            self.img_style_picker.SetImageSize(self.dataset.GetImageSize())
         self.AddLabelWidgets(self.dataset.label)
         # self.AddLabelClasses(self.dataset.label)
 
     def SetLabel(self):
         all_info = []
-        box_2D = self.img_style_picker.border_widgets
-        for idx, box_3D in  enumerate(self.box_widgets):
+        if self.img_style_picker:
+            box_2D = self.img_style_picker.border_widgets
+        for idx, box_3D in enumerate(self.box_widgets):
             # the num is 16 in all
             info = []
             # 1
@@ -384,7 +402,10 @@ class StylePickerDisplayer(Displayer):
             # 1
             info.append(GetObserverAngle(box_3D))
             # 4
-            info.extend(box_2D[idx].GetInfo(self.dataset.GetImageSize()))
+            if self.img_style_picker:
+                info.extend(box_2D[idx].GetInfo(self.dataset.GetImageSize()))
+            else:
+                info.extend([-1, -1, -1, -1])
             # 7
             info.extend(box_3D.GetInfo())
 
@@ -397,12 +418,11 @@ class StylePickerDisplayer(Displayer):
         self.dataset.SetLabel(all_info)
         print("INFO:Save Label success! ")
 
-
         self.dataset.SaveStatus()
 
     def SaveLabel(self):
         # if self.auto_save:
-            # save to list(in memory not in disk)
+        # save to list(in memory not in disk)
         if self.mode == "display":
             print("WARN: you should not save label in display mode! Turn off "
                   "auto save to swallow this warning")
@@ -414,29 +434,31 @@ class StylePickerDisplayer(Displayer):
         else:
             raise ValueError("mode is not recognized!")
 
-
-    def AddLabelWidgets(self,labels):
+    def AddLabelWidgets(self, labels):
         factor = 1
         for label in labels:
             center = label["t"]
-            center[1]-=label["h"]/2.0
+            center[1] -= label["h"] / 2.0
 
-            dims = label["h"],label["w"], label["l"]
-            dims = [factor*i for i in dims]
+            dims = label["h"], label["w"], label["l"]
+            dims = [factor * i for i in dims]
 
-            angle = label["yaw"]/math.pi*180
+            angle = label["yaw"] / math.pi * 180
             # angle=0
-            box = BoxWidget(self.pc_style_picker.renderer,self)
+            box = BoxWidget(self.pc_style_picker.renderer, self)
             # print(dims)
-            box.SetCenterAndDim(center,dims,angle)
+            box.SetCenterAndDim(center, dims, angle)
 
             box.On()
             # add possible focal point to renderer
             point_renderer = self.pc_style_picker
-            point_renderer.renderer.AddPossibleFocalPoint(GetBoundsCenter(box.GetBounds()))
+            point_renderer.renderer.AddPossibleFocalPoint(
+                GetBoundsCenter(box.GetBounds()))
             self.box_widgets.append(box)
             self.classes.append(label["type"])
 
+            if self.dataset.velodyne_only:
+                continue
             box2d = label["box2d"]
             a, b = box2d[1], box2d[3]
             img_size = self.img_style_picker.img_size
@@ -448,26 +470,24 @@ class StylePickerDisplayer(Displayer):
             img_start = img_view_port[:2]
             size = self.interactor.GetRenderWindow().GetSize()
 
-            box2d[1]+=img_start[1] * size[1]
-            box2d[3]+=img_start[1] * size[1]
+            box2d[1] += img_start[1] * size[1]
+            box2d[3] += img_start[1] * size[1]
 
-            border_widget = BorderWidget(box2d[:2],
-                                         box2d[2:],
+            border_widget = BorderWidget(box2d[:2], box2d[2:],
                                          img_view_port[:2],
-                                         self.img_style_picker.renderer,
-                                         self)
+                                         self.img_style_picker.renderer, self)
             # bind with it
             border_widget.BindBoxWidget(box)
 
             # border_widget.SetCurrentRenderer(self.img_style_picker.renderer)
             self.img_style_picker.border_widgets.append(border_widget)
 
-    def SetImgStylePicker(self,img_style_picker):
+    def SetImgStylePicker(self, img_style_picker):
         self.img_style_picker = img_style_picker
 
         self.AddStylePickerRenderer(img_style_picker)
 
-    def SetPointCloudStylePicker(self,pc_style_picker):
+    def SetPointCloudStylePicker(self, pc_style_picker):
         self.pc_style_picker = pc_style_picker
         # self.pc_style_picker.renderer.SetViewport(self.poly_view_port)
         self.AddStylePickerRenderer(pc_style_picker)
@@ -485,29 +505,33 @@ class StylePickerDisplayer(Displayer):
 
     def CloseLastBoxWidget(self):
         # close border widgets
-        self.img_style_picker.CloseLastBorderWidget()
+        if not self.dataset.velodyne_only:
+            self.img_style_picker.CloseLastBorderWidget()
 
         for box in self.box_widgets:
             box.Off()
         self.box_widgets = []
 
     def SetWindowName(self):
-        title = "the {}th:{}".format(str(self.dataset.data_idx+1),
-                                     self.pc_style_picker.style_callback.mode)
+        if self.dataset.prefix_name:
+            title = "{} :{}".format(self.dataset.prefix_name,
+                                    self.pc_style_picker.style_callback.mode)
+        else:
+            title = "the {}th:{}".format(
+                str(self.dataset.data_idx + 1),
+                self.pc_style_picker.style_callback.mode)
         self.window.SetWindowName(title)
 
-    def SetLabelName(self,label_name):
+    def SetLabelName(self, label_name):
         self.label_name = label_name
 
     def Start(self):
         self.Next(save=False)
         super().Start()
 
-    def Next(self,save=True):
+    def Next(self, save=True):
         if save:
             self.SaveLabel()
-
-
 
         self.dataset.LoadNext(self.mode)
 
@@ -516,22 +540,22 @@ class StylePickerDisplayer(Displayer):
         self.Init()
 
     def GetWidgetIdx(self):
-        return self.img_style_picker.border_widgets_idx
+        if not self.dataset.velodyne_only:
+            return self.img_style_picker.border_widgets_idx
 
-
-    def SetPointActor(self,myactor):
+    def SetPointActor(self, myactor):
         self.point_actor = myactor
 
-    def SetImageActor(self,myactor):
+    def SetImageActor(self, myactor):
         self.img_actor = myactor
 
-    def SetFileName(self,filename):
+    def SetFileName(self, filename):
         self.filename = filename
 
-    def SetSelection(self,selection):
+    def SetSelection(self, selection):
         self.selection = selection
 
-    def AddStylePickerRenderer(self,stylePickerRenderer):
+    def AddStylePickerRenderer(self, stylePickerRenderer):
         self.StylePickerRenderers.append(stylePickerRenderer)
         self.window.AddRenderer(stylePickerRenderer.renderer)
 
@@ -548,10 +572,11 @@ class StylePickerDisplayer(Displayer):
 
         # add possible focal point to renderer
         point_renderer = self.pc_style_picker
-        point_renderer.renderer.AddPossibleFocalPoint(GetBoundsCenter(box_widget.GetBounds()))
+        point_renderer.renderer.AddPossibleFocalPoint(
+            GetBoundsCenter(box_widget.GetBounds()))
 
-    def SwitchStylePicker(self,idx):
-        if self.current_idx==idx:
+    def SwitchStylePicker(self, idx):
+        if self.current_idx == idx:
             return
         stylePickerRenderer = self.StylePickerRenderers[idx]
         self.current_renderer = stylePickerRenderer.renderer
@@ -563,55 +588,55 @@ class StylePickerDisplayer(Displayer):
         if style:
             self.interactor.SetInteractorStyle(style)
 
-    def _CheckInSide(self,pos,region):
-        x,y = pos
-        if region[0]<=x and region[2]>x and region[1]<=y and region[3]>y:
-            return  True
+    def _CheckInSide(self, pos, region):
+        x, y = pos
+        if region[0] <= x and region[2] > x and region[1] <= y and region[3] > y:
+            return True
         return False
 
-    def SwitchCondition(self,pos):
-        for idx,stylePickerRenderer in enumerate(self.StylePickerRenderers):
+    def SwitchCondition(self, pos):
+        for idx, stylePickerRenderer in enumerate(self.StylePickerRenderers):
             region = list(stylePickerRenderer.renderer.GetViewport())
             size = self.interactor.GetRenderWindow().GetSize()
-            region[0]*=size[0]
-            region[1]*=size[1]
-            region[2]*=size[0]
-            region[3]*=size[1]
-            if self._CheckInSide(pos,region):
+            region[0] *= size[0]
+            region[1] *= size[1]
+            region[2] *= size[0]
+            region[3] *= size[1]
+            if self._CheckInSide(pos, region):
                 return idx
 
-    def _ConvertPosToBox(self,start,end):
+    def _ConvertPosToBox(self, start, end):
         size = self.interactor.GetRenderWindow().GetSize()
         new_original = []
         img_start = self.img_view_port[:2]
-        new_original.append(img_start[0]*size[0])
-        new_original.append(img_start[1]*size[1])
+        new_original.append(img_start[0] * size[0])
+        new_original.append(img_start[1] * size[1])
         img_size = self.pc_style_picker.img_size
 
         # translation of origin
-        start[0] -=new_original[0]
-        start[1] -=new_original[1]
+        start[0] -= new_original[0]
+        start[1] -= new_original[1]
 
-        end[0] -=new_original[0]
-        end[1] -=new_original[1]
+        end[0] -= new_original[0]
+        end[1] -= new_original[1]
 
         # flip
-        start[1] = img_size[1]-start[1]
-        end[1] = img_size[1]-end[1]
+        start[1] = img_size[1] - start[1]
+        end[1] = img_size[1] - end[1]
 
-        return start+end
+        return start + end
 
-    def _ConvertBoxToPos(self,start,end):
+    def _ConvertBoxToPos(self, start, end):
         size = self.interactor.GetRenderWindow().GetSize()
         new_original = []
         img_start = self.img_view_port[:2]
-        new_original.append(img_start[0]*size[0])
-        new_original.append(img_start[1]*size[1])
+        new_original.append(img_start[0] * size[0])
+        new_original.append(img_start[1] * size[1])
         img_size = self.img_style_picker.img_size
 
         # flip
-        start[1] = img_size[1]-start[1]
-        end[1] = img_size[1]-end[1]
+        start[1] = img_size[1] - start[1]
+        end[1] = img_size[1] - end[1]
 
         # translation of origin
         end[0] += new_original[0]
@@ -619,9 +644,7 @@ class StylePickerDisplayer(Displayer):
 
         start[0] += new_original[0]
         start[1] += new_original[1]
-        return start+end
-
-
+        return start + end
 
     def RegisterDisplayerCallback(self):
         self.callback = DisplayerCallback(self)

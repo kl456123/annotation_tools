@@ -1,6 +1,7 @@
 dataset:
   root_path: "./kitti"
   image_path: "image_00"
+  velodyne_only: No
   velo_path: "velodyne_points"
   label_path: "labels"
   log_name: "log.pkl"

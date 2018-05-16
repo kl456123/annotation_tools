@@ -8,26 +8,13 @@ from callback import SelectionCallback
 ##################################
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ######################################
 ####frustum selection ################
 ######################################
 
 class Selection(object):
-    def __init__(self,input_filter,displayer,point_renderer,debug=False):
+    def __init__(self, input_filter, displayer, point_renderer, debug=False, velo_only=False):
+        self.in_velo = velo_only
         self.selected_actor = None
         self.box_widget = None
         self.SetInput(input_filter)
@@ -47,7 +34,7 @@ class Selection(object):
 
         # self.displayer = displayer
 
-        self.box_centers = [0,0,0]
+        self.box_centers = [0, 0, 0]
         self.point_renderer = point_renderer
 
         self.ResetWidgetAndActor()
@@ -72,7 +59,7 @@ class Selection(object):
     #     # for render immediately
     #     self.renderer = renderer
 
-    def SetDisplayer(self,displayer):
+    def SetDisplayer(self, displayer):
         # bind displayer to selection
         # it is necessary to make box widget connect with interactor
         self.displayer = displayer
@@ -96,42 +83,38 @@ class Selection(object):
         if self.box_widget is not None:
             self.box_widget.Off()
             # del self.box_widget
-        self.box_widget = BoxWidget(self.point_renderer,self.displayer,self.input)
-
+        self.box_widget = BoxWidget(
+            self.point_renderer, self.displayer, self.input)
 
     def Reset(self):
 
         if not self.IsObjectSelected():
-            #no more new thing need to reset
+            # no more new thing need to reset
             return
         # reset input ,box widget and actor
         self.ResetHistory()
-
 
         self.ResetWidgetAndActor()
 
         # exit from continue mode
         self.SetContinue(False)
 
-
-
-    def SetInput(self,vtkAlgo):
+    def SetInput(self, vtkAlgo):
         # the oldest filter for reset
         self.input = vtkAlgo
-        assert isinstance(vtkAlgo,vtk.vtkAlgorithm),\
+        assert isinstance(vtkAlgo, vtk.vtkAlgorithm),\
             print("arguement should be the type of vtkAlgorithmOutput")
 
     def GetActor(self):
         return self.selected_actor.actor
 
-
     def GetContinue(self):
         return self._continue
 
-    def SetContinue(self,con):
+    def SetContinue(self, con):
         self._continue = con
 
-    def AddFilter(self,func):
+    def AddFilter(self, func):
         if not self.GetContinue():
             # reset history
             self.ResetHistory()
@@ -140,19 +123,19 @@ class Selection(object):
         # set filter function
         extract_geometry_filter.SetImplicitFunction(func)
 
-
-
         # connect the last output
         # some bug here, so I use SetInputData() instead.
         # extract_geometry_filter.SetInputConnection(self.last_filters[-1].GetOutputPort())
-        extract_geometry_filter.SetInputConnection(self.last_filter.GetOutputPort())
+        extract_geometry_filter.SetInputConnection(
+            self.last_filter.GetOutputPort())
 
         # save last_filter
         self.last_filters.append(self.last_filter)
 
         # update the last output
         self.last_filter = vtk.vtkVertexGlyphFilter()
-        self.last_filter.SetInputConnection(extract_geometry_filter.GetOutputPort())
+        self.last_filter.SetInputConnection(
+            extract_geometry_filter.GetOutputPort())
 
         # append to the list for saving
         self.extract_geometry_filters.append(extract_geometry_filter)
@@ -161,14 +144,14 @@ class Selection(object):
         self.selected_actor.SetInput(self.last_filter.GetOutputPort())
         self.selected_actor.Update()
 
-    def Color(self,color_name="green"):
+    def Color(self, color_name="green"):
 
         # num of points
-        num_points  = self.selected_actor.GetNumberOfPoints()
+        num_points = self.selected_actor.GetNumberOfPoints()
         num_cells = self.selected_actor.GetNumberOfCells()
 
         # generate colors
-        selected_colors = GenerateColors(num_points,color_name=color_name)
+        selected_colors = GenerateColors(num_points, color_name=color_name)
 
         # set attribution of points
         self.selected_actor.SetScalars(selected_colors)
@@ -181,8 +164,3 @@ class Selection(object):
         #
         self.box_widget.SetMyactor(self.selected_actor)
         # self.box_widget.PlaceWidget()
-
-
-
-
-
