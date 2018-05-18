@@ -40,10 +40,9 @@ class PointCloudReader(object):
     def LoadCalib(self,calib_file):
         self.calib = load_calibration(calib_file)
 
-    def SetFileName(self,filename,velodyne_only):
+    def SetFileName(self,filename):
         calib_name = self.GetCalibName(filename)
-        if not velodyne_only:
-            self.LoadCalib(calib_name)
+        self.LoadCalib(calib_name)
         scans = read_from(filename,calib_name,self.transform)
         polydata = GeneratePointPolyData(scans, self.color_name)
         self.vertexGlyphFilter.SetInputData(polydata)

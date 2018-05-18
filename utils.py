@@ -172,13 +172,9 @@ def SetMapperAndActor(polydata):
 def GeneratePointPolyData(scan, color_name="red"):
     numofpoints = scan.shape[0]
     points = vtk.vtkPoints()
-    # for k in range(numofpoints):
-    #     point = scan[k, :3]
-    #     points.InsertNextPoint(point)
-
-    from vtk.util import numpy_support
-
-    points.SetData(numpy_support.numpy_to_vtk(scan[:,:3]))
+    for k in range(numofpoints):
+        point = scan[k, :3]
+        points.InsertNextPoint(point)
 
     pointsPolyData = vtk.vtkPolyData()
     pointsPolyData.SetPoints(points)

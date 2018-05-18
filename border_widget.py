@@ -1,144 +1,123 @@
+# -*- coding: utf-8 -*-
 import vtk
-
-widgets = []
-
-
-from myio import *
-from actor import *
+import numpy as np
 
 
-Flag = True
+class BorderWidget(vtk.vtkBorderWidget):
+    def __init__(self, start, end, img_start, renderer, displayer):
+        super().__init__()
+        self.coords = []
+        self.SetRenderer(renderer)
+        self.interactor = displayer.interactor
+        self.img_start = img_start
+        self.abs_start = None
+        self.abs_end = None
+        self.box_widget = None
+        self.SetInteractor(self.interactor)
+        self.Generate(start, end)
+        print("borderwidget callback registered!")
+        self.RegisterCallBack(displayer)
 
+    def BindBoxWidget(self, box_widget):
+        self.box_widget = box_widget
 
-def main():
-    img_reader = ImageReaderFactory().GenerateImageReader("png")
-    img_reader.SetFileName("./kitti/image_00/000000.png")
-    img_actor = ImageActor(img_reader.GetOutputPort())
+    def GetInfo(self, img_size):
+        rep = self.GetBorderRepresentation()
 
-    sphereSource = vtk.vtkSphereSource()
-    sphereSource.SetRadius(4.0)
-    sphereSource.Update()
+        pos = np.array(rep.GetPosition())
+        pos2 = np.array(rep.GetPosition2())
 
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(sphereSource.GetOutputPort())
+        pos2 += pos
 
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
+        # normalized coordinates
+        box = np.concatenate([pos, pos2])
 
-    renderer = vtk.vtkRenderer()
-    renderWindow = vtk.vtkRenderWindow()
+        size = list(self.interactor.GetRenderWindow().GetSize())
+        # print("size: ",size)
 
-    renderWindow.AddRenderer(renderer)
+        # view_port size
+        size[1] -= self.img_start[1] * size[1]
 
-    interactor = vtk.vtkRenderWindowInteractor()
-    interactor.SetRenderWindow(renderWindow)
+        # original coordinates
 
-    borderWidget = vtk.vtkBorderWidget()
-    borderWidget.SetInteractor(interactor)
+        # box left bottom and right top
+        box[::2] *= size[0]
+        box[1::2] *= size[1]
 
-    representation = vtk.vtkBorderRepresentation()
-    representation.SetPosition(0, 0)
-    representation.SetPosition2(0.1, 0.1)
-    borderWidget.SetRepresentation(representation)
+        # box left top and right bottom
+        a, b = box[1], box[3]
 
-    # borderWidget.CreateDefaultRepresentation()
-    borderWidget.SelectableOff()
-    borderWidget.On()
-    print(representation)
+        box[1] = img_size[1] - b
+        box[3] = img_size[1] - a
 
-    style = vtk.vtkInteractorStyleRubberBand2D()
+        res1 = list(map(lambda x: round(x, 2), list(box)))
 
-    def gen(style, event):
-        size = renderWindow.GetSize()
-        start = list(style.GetStartPosition())
-        end = list(style.GetEndPosition())
-        new_start = [start[0], end[1]]
-        new_end = [end[0], start[1]]
-        print("start,end: ", start, end)
-        print("new_start,new_end: ", new_start, new_end)
-        tmp = [new_start[0] / size[0], new_start[1] / size[1]]
+        return res1
 
-        print("scaled bottom_left: ", tmp)
-        print("scaled top_right: ", new_end[0] / size[0], new_end[1] / size[1])
-        representation = vtk.vtkBorderRepresentation()
-        borderWidget = vtk.vtkBorderWidget()
+    def SetRenderer(self, renderer):
+        self.SetDefaultRenderer(renderer)
+
+    def SetPosition(self):
+        size = list(self.interactor.GetRenderWindow().GetSize())
+        new_original = []
+        new_original.append(self.img_start[0] * size[0])
+        new_original.append(self.img_start[1] * size[1])
+
+        size[1] -= new_original[1]
+        tmp = [self.abs_start[0] / size[0], self.abs_start[1] / size[1]]
+
+        representation = self.GetBorderRepresentation()
 
         representation.SetPosition(tmp[0], tmp[1])
         representation.SetPosition2(
-            new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
+            self.abs_end[0] / size[0] - tmp[0], self.abs_end[1] / size[1] - tmp[1])
 
-        representation.SetMoving(0)
-        print("Moving status: ", representation.GetMoving())
-        borderWidget.SetRepresentation(representation)
-        borderWidget.SetInteractor(interactor)
-        borderWidget.ResizableOn()
-        # borderWidget.CreateDefaultRepresentation()
-        # borderWidget.SelectableO()
-        borderWidget.On()
-        renderWindow.Render()
-        widgets.append(borderWidget)
+    def Generate(self, start, end):
+        new_original = []
+        size = list(self.interactor.GetRenderWindow().GetSize())
+        new_original.append(self.img_start[0] * size[0])
+        new_original.append(self.img_start[1] * size[1])
 
-    # def stylecallback(style, event):
-    #     size = renderWindow.GetSize()
-    #     start = list(style.GetStartPosition())
-    #     end = list(style.GetEndPosition())
-    #     new_start = [start[0], end[1]]
-    #     new_end = [end[0], start[1]]
-    #     print("start,end: ", start, end)
-    #     print("new_start,new_end: ", new_start, new_end)
-    #     tmp = [new_start[0] / size[0], new_start[1] / size[1]]
+        new_start = [start[0], end[1]-new_original[1]]
+        new_end = [end[0], start[1]-new_original[1]]
 
-    #     print("scaled bottom_left: ", tmp)
-    #     print("scaled top_right: ", new_end[0] / size[0], new_end[1] / size[1])
-    #     r = vtk.vtkBorderRepresentation()
-    #     # representation.MovingOff()
-    #     borderWidget = vtk.vtkBorderWidget()
-    #     # representation.ResizableOff()
-    #     # representation = vtk.vtkBorderRepresentation()
-    #     # representation
-    #     borderWidget.SelectableOff()
-    #     # global Flag
-    #     # if Flag:
-    #     #     borderWidget.SelectableOn()
-    #     #     Flag = False
-    #     # else:
-    #     #     borderWidget.SelectableOff()
-    #     #     Flag = True
+        self.abs_start = new_start
+        self.abs_end = new_end
 
-    #     # representation.SetPosition(tmp[0], tmp[1])
-    #     # representation.SetPosition2(
-    #     #     new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
+        self.coords += new_start
+        self.coords += new_end
 
-    #     # representation.SetMoving(1)
-    #     # print("Moving status: ", representation.GetMoving())
-    #     # borderWidget.CreateDefaultRepresentation()
-    #     # r = borderWidget.GetBorderRepresentation()
-    #     r.MovingOff()
-    #     r.SetPosition(tmp[0], tmp[1])
-    #     r.SetPosition2(
-    #         new_end[0] / size[0] - tmp[0], new_end[1] / size[1] - tmp[1])
-    #     r.SetMoving(1)
-    #     r.BuildRepresentation()
-    #     borderWidget.SetRepresentation(r)
-    #     borderWidget.SetInteractor(interactor)
-    #     # borderWidget.ResizableOff()
-    #     # borderWidget.CreateDefaultRepresentation()
-    #     # borderWidget.SelectableOn()
-    #     borderWidget.On()
-    #     print(r)
-    #     renderWindow.Render()
-    #     widgets.append(borderWidget)
+        size[1] -= new_original[1]
+        tmp = [new_start[0] / size[0], new_start[1] / size[1]]
 
-    # style.AddObserver("SelectionChangedEvent", stylecallback)
-    interactor.SetInteractorStyle(style)
-    renderer.AddActor(actor)
-    renderer.AddActor(img_actor.actor)
+        self.CreateDefaultRepresentation()
+        representation = self.GetBorderRepresentation()
 
-    interactor.Initialize()
-    renderWindow.Render()
-    # borderWidget.On()
+        representation.SetPosition(tmp[0], tmp[1])
+        representation.SetPosition2(
+            new_end[0]/size[0]-tmp[0], new_end[1]/size[1]-tmp[1])
+        representation.NeedToRenderOn()
+        representation.MovingOff()
+        # self.SetRepresentation(representation)
+        self.SetInteractor(self.interactor)
+        self.SelectableOff()
+        # self.SetResizable(1)
 
-    interactor.Start()
+        # self.ResizableOn()
+        self.KeyPressActivationOff()
+        self.ManagesCursorOff()
 
+        print("border widget activated! ")
+        self.On()
+        # print(self.GetBorderRepresentation().GetInteractionState())
+        # print(representation)
 
-main()
+    def ChangeColor(self, color_name=[1, 1, 0]):
+        self.GetBorderRepresentation().GetBorderProperty().SetColor(color_name)
+
+    def UnchangeColor(self):
+        self.GetBorderRepresentation().GetBorderProperty().SetColor([1, 1, 1])
+
+    def RegisterCallBack(self, displayer):
+        from callback import BorderWidgetCallback
+        self.callback = BorderWidgetCallback(self, displayer)
