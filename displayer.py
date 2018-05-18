@@ -159,9 +159,13 @@ class PolyDataStylePickerRenderer(StylePickerRenderer):
         # self.selection = selection
         super().__init__(renderer, style, picker)
         self.cur_box_widget = None
+        self.points_actor=None
 
     def SetCurrentBoxWidget(self, box_widget):
         self.cur_box_widget = box_widget
+
+    def SetPointsActor(self,points_actor):
+        self.points_actor = points_actor
 
     def GetCurrentBoxWidget(self):
         if self.cur_box_widget:
@@ -249,6 +253,7 @@ class StylePickerDisplayer(Displayer):
         self.classes = []
         self.StylePickerRenderers = []
 
+
         self.auto_save = cfg["auto_save"]
         self.mode = cfg["mode"]
 
@@ -264,6 +269,8 @@ class StylePickerDisplayer(Displayer):
         # set in order
 
         self.SetDataSet(dataset)
+
+        self.velo_only = self.dataset.velodyne_only
 
         self.SetUpPCStylePickerRenderer(cfg["pc"])
 
@@ -334,6 +341,9 @@ class StylePickerDisplayer(Displayer):
         # pc_style_picker
         pc_style_picker = PolyDataStylePickerRenderer(point_renderer)
 
+        # set points_actor in pc_style_picker
+        pc_style_picker.SetPointsActor(points_actor)
+
         # pc_style_picker
         pc_style_picker.RegisterPickerCallback(self)
         pc_style_picker.RegisterStyleCallback(self)
@@ -356,12 +366,13 @@ class StylePickerDisplayer(Displayer):
         self.CloseLastBoxWidget()
         self.classes = []
         self.pc_style_picker.renderer.ResetPossibleFocalPoint()
+        self.pc_style_picker.points_actor.UpdatePoints()
 
         # remove all but pc and selected actor in pc_renderer
-        self.pc_style_picker.renderer.RemoveAllViewProps()
-        points_actor = PolyDataActor(self.dataset.pc_reader.GetFilter())
-        self.pc_style_picker.renderer.AddMyActor(points_actor)
-        self.selection.ResetWidgetAndActor()
+        # self.pc_style_picker.renderer.RemoveAllViewProps()
+        # points_actor = PolyDataActor(self.dataset.pc_reader.GetFilter())
+        # self.pc_style_picker.renderer.AddMyActor(points_actor)
+        # self.selection.ResetWidgetAndActor()
         # self.pc_style_picker.renderer
 
         # remove all but img in img_renderer

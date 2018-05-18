@@ -7,7 +7,7 @@ from dataset import Dataset
 
 def main():
     config_parser = ConfigParser()
-    config_parser.LoadConfig("config/example.yaml")
+    config_parser.LoadConfig("config/velo_only.yaml")
 
     dataset = Dataset(config_parser.GetDatasetConfig())
 

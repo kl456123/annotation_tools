@@ -20,8 +20,8 @@ class Callback(object):
 
         self.Start()
 
-    def AddEventObserver(self, event, func,priority=1.0):
-        self.obj.AddObserver(event, func,priority)
+    def AddEventObserver(self, event, func, priority=1.0):
+        self.obj.AddObserver(event, func, priority)
 
     def AddKeyObserver(self, key, func):
         self.key_observer[key] = func
@@ -223,6 +223,9 @@ class PointCloudStyleCallback(StyleCallback):
         self.mode = "view"
         self.style_picker_renderer = style_picker_renderer
         self.displayer = displayer
+        self.height = 30
+        self.step = 1
+        self.velo_only = self.displayer.velo_only
 
     def ChangeWindowName(self, obj, event):
         if self.mode == "view":
@@ -238,6 +241,24 @@ class PointCloudStyleCallback(StyleCallback):
         title += self.mode
         window.SetWindowName(title)
 
+    def LowerSlice(self,obj,event):
+        self.height-=self.step
+        self.SlicePointCloud()
+
+    def SlicePointCloud(self):
+        points_actor = self.style_picker_renderer.points_actor
+        if self.velo_only:
+            height_axis = 2
+            pos = 1
+        else:
+            height_axis = 1
+            pos = 0
+        points_actor.RemoveHigherPoints(self.height,height_axis,pos)
+
+    def HigherSlice(self,obj,event):
+        self.height += self.step
+        self.SlicePointCloud()
+
     def Reset(self, obj, event):
         cur = self.style_picker_renderer.GetCurrentBoxWidget()
         # displayer = self.displayer
@@ -250,7 +271,11 @@ class PointCloudStyleCallback(StyleCallback):
 
     def Start(self):
         self.AddKeyObserver("r", self.ChangeWindowName)
-        # self.AddKeyObserver("4", self.Reset)
+        self.AddKeyObserver("2",self.HigherSlice)
+        self.AddKeyObserver("1",self.LowerSlice)
+        if not self.velo_only:
+            # TODO: too naive
+            self.AddKeyObserver("4", self.Reset)
 
 
 class DisplayerCallback(Callback):
@@ -385,24 +410,24 @@ class CameraCallback(Callback):
         self.focal_point = [0, 0, 0]
         self.possible_fps = [(0, 0, 0)]
         self.idx_fps = 0
-        self.slice_height = 50
+        self.slice_height = 30
         self.lower_step = 1
-        self.clipping_range = [0.1, 1000]
-
+        self.clipping_range = [0.1, 3000]
 
         self.SetVerticalView(self.obj, None)
 
-    def AutoAdjustCameraPosition(self,obj,event):
+    def AutoAdjustCameraPosition(self, obj, event):
         self.position = self.obj.GetPosition()
 
-    def CheckIsCameraHeightChanged(self,position):
+    def CheckIsCameraHeightChanged(self, position):
         if self.obj.in_velo:
             height_idx = 2
         else:
             height_idx = 1
-        return False if self.position[height_idx] == position[height_idx] else True
+        return False if self.position[height_idx] == position[
+            height_idx] else True
 
-    def AutoAjustClippingRange(self,obj,event):
+    def AutoAjustClippingRange(self, obj, event):
         self.SetClippingRange()
 
     def LowerSlice(self, obj, event):
@@ -417,9 +442,12 @@ class CameraCallback(Callback):
 
     def SetClippingRange(self):
         if self.obj.in_velo:
-            self.clipping_range[0] = self.position[2]- self.slice_height
+            near = self.position[2] - self.slice_height
+            self.clipping_range[0] = near if near > 0 else 0
+            # self.clipping_range[0] = near
         else:
-            self.clipping_range[0] = self.slice_height - self.position[1]
+            near = self.slice_height - self.position[1]
+            self.clipping_range[0] = near if near > 0 else 0
 
         self.obj.SetClippingRange(self.clipping_range)
 
@@ -495,11 +523,14 @@ class CameraCallback(Callback):
         self.AddKeyObserver("Tab", self.SwitchFocalPoint)
         # self.AddKeyObserver("n",self.ClockwiseRollRotation)
         # self.AddKeyObserver("m",self.CounterclockwiseRollRotation)
-        self.AddKeyObserver("1", self.LowerSlice)
-        self.AddKeyObserver("2", self.HigherSlice)
-        self.AddEventObserver(vtk.vtkCommand.ModifiedEvent,self.AutoAdjustCameraPosition)
-        self.AddEventObserver(vtk.vtkCommand.ModifiedEvent,self.AutoAjustClippingRange)
-        self.AddEventObserver(vtk.vtkCommand.ModifiedEvent, self.AutoAjustClippingRange)
+        # self.AddKeyObserver("1", self.LowerSlice)
+        # self.AddKeyObserver("2", self.HigherSlice)
+        self.AddEventObserver(vtk.vtkCommand.ModifiedEvent,
+                              self.AutoAdjustCameraPosition)
+        # self.AddEventObserver(vtk.vtkCommand.ModifiedEvent,
+                              # self.AutoAjustClippingRange)
+        # self.AddEventObserver(vtk.vtkCommand.ModifiedEvent,
+                              # self.AutoAjustClippingRange)
         # self.AddKeyObserver("n",self.ResetPossibleFocalPoint)
 
 

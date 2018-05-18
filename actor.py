@@ -103,8 +103,32 @@ class PolyDataActor(MyActor):
 
         self.actor.SetMapper(self.mapper)
 
+    def UpdatePoints(self):
+        self.all_points = self.GetAllPoints()
+
     def SetMapper(self):
         self.mapper = vtk.vtkPolyDataMapper()
 
     def SetActor(self):
         self.actor = vtk.vtkActor()
+
+
+    def RemoveHigherPoints(self,height,height_axis,pos):
+        points_np = self.all_points
+        if pos:
+            height_filter = np.where(points_np[:,height_axis]<=height)[0]
+        else:
+            height_filter = np.where(points_np[:, height_axis] >= height)[0]
+
+        numofpoints = height_filter.size
+
+        filted_points = vtk.vtkPoints()
+        from vtk.util import numpy_support
+
+        filted_points.SetData(numpy_support.numpy_to_vtk(points_np[height_filter]))
+
+        self.GetInput().GetPoints().ShallowCopy(filted_points)
+        colors = GenerateColors(numofpoints, "red")
+
+        # set to polydata
+        self.GetInput().GetPointData().SetScalars(colors)

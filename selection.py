@@ -37,6 +37,9 @@ class Selection(object):
         self.box_centers = [0, 0, 0]
         self.point_renderer = point_renderer
 
+        self.selected_actor = PolyDataActor(self.input.GetOutputPort())
+        self.point_renderer.AddActor(self.GetActor())
+
         self.ResetWidgetAndActor()
 
         self.RegisterSelectionCallback()
@@ -72,11 +75,11 @@ class Selection(object):
 
     def ResetWidgetAndActor(self):
         # reset actor
-        if self.selected_actor is not None:
-            self.selected_actor.SetInput(self.input.GetOutputPort())
-        self.selected_actor = PolyDataActor(self.input.GetOutputPort())
+        # if self.selected_actor is not None:
+        self.selected_actor.SetInput(self.input.GetOutputPort())
+
         # pass on actor to renderer
-        self.point_renderer.AddActor(self.GetActor())
+        # self.point_renderer.AddActor(self.GetActor())
         # re = vtk.vtkRenderer()
 
         # reset box widget
