@@ -162,7 +162,15 @@ class PolyDataStylePickerRenderer(StylePickerRenderer):
         self.points_actor=None
 
     def SetCurrentBoxWidget(self, box_widget):
-        self.cur_box_widget = box_widget
+        # self.cur_box_widget = box_widget
+        if box_widget is None:
+            self.cur_box_widget = None
+        else:
+            if self.cur_box_widget:
+                self.cur_box_widget.UnchangeColor()
+
+            box_widget.ChangeColor()
+            self.cur_box_widget = box_widget
 
     def SetPointsActor(self,points_actor):
         self.points_actor = points_actor

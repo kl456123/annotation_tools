@@ -41,9 +41,10 @@ def read_from(filename,calib_file, transform=False):
     # scan = scan.dot(R.T)
     # scan = scan[:,:3]
     if not transform:
-        return scan
-    calib = load_calibration(calib_file)
-    extrinsic = calib["T_vel_to_cam"]
+        extrinsic = np.asarray([0 ,-1, 0 ,0,0 ,0 ,-1 ,0,1 ,0 ,0 ,0,0,0,0,1]).reshape((4,4))
+    else:
+        calib = load_calibration(calib_file)
+        extrinsic = calib["T_vel_to_cam"]
     # extrinsic = GetExtrinsicMatrix()
     scan = (extrinsic.dot(scan.T)).T
 

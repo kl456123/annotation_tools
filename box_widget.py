@@ -22,6 +22,9 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.selected = False
         self.selection = None
         self.init_center = None
+        self.velo_only = displayer.velo_only
+
+        self.RegisterWidgetCallback(displayer)
 
 
     def SetInput(self,input):
@@ -35,7 +38,7 @@ class BoxWidget(vtk.vtkBoxWidget):
 
     def RegisterWidgetCallback(self,displayer):
         from callback import BoxWidgetCallback
-        self.box_widget_callback = BoxWidgetCallback(self,interactor=displayer.interactor)
+        self.box_widget_callback = BoxWidgetCallback(self,displayer)
 
     def AdjustColor(self,flag):
         if self.myactor is None:
@@ -87,6 +90,9 @@ class BoxWidget(vtk.vtkBoxWidget):
         trans.PostMultiply()
         trans.Identity()
         trans.Scale(dims[2],dims[0],dims[1])
+        # if self.velo_only:
+        #     trans.RotateZ(angle)
+        # else:
         trans.RotateY(angle)
         self.angle = angle
         trans.Translate(*center)
@@ -131,8 +137,10 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.angle = angle
 
     def GetInfo(self):
-
         center ,[h,w,l] = self.GetCenterAndDims()
+        # if self.velo_only:
+        #     center[2] = center[2]-h/2.0
+        # else:
         center[1] =center[1]+ h/2.0
         angle =   self.orientation * 90-self.angle
         if angle<180:

@@ -1,11 +1,11 @@
 dataset:
- resume: No
- # velodyne_only: Yes
- label_path: "."
+ resume: Yes
+ velodyne_only: No
+ label_path: "gts"
  # pointcloud_reader:
   # transform: No
 
- prefix_name: "002773"
+ # prefix_name: "002773"
  # filter_classes:
   # - "Car"
 displayer:

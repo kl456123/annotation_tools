@@ -247,13 +247,8 @@ class PointCloudStyleCallback(StyleCallback):
 
     def SlicePointCloud(self):
         points_actor = self.style_picker_renderer.points_actor
-        if self.velo_only:
-            height_axis = 2
-            pos = 1
-        else:
-            height_axis = 1
-            pos = 0
-        points_actor.RemoveHigherPoints(self.height,height_axis,pos)
+        height_axis = 1
+        points_actor.RemoveHigherPoints(self.height,height_axis)
 
     def HigherSlice(self,obj,event):
         self.height += self.step
@@ -273,9 +268,7 @@ class PointCloudStyleCallback(StyleCallback):
         self.AddKeyObserver("r", self.ChangeWindowName)
         self.AddKeyObserver("2",self.HigherSlice)
         self.AddKeyObserver("1",self.LowerSlice)
-        if not self.velo_only:
-            # TODO: too naive
-            self.AddKeyObserver("4", self.Reset)
+        self.AddKeyObserver("4", self.Reset)
 
 
 class DisplayerCallback(Callback):
@@ -481,25 +474,25 @@ class CameraCallback(Callback):
         self.obj.Elevation(-1)
 
     def SetHorizontalView(self, obj, event):
-        if self.obj.in_velo:
-            self.position = [-100, self.focal_point[0], self.focal_point[2]]
-            self.viewup = [0, 0, 1]
-        else:
-            self.position = [self.focal_point[0], self.focal_point[1], -100]
-            # self.focal_point = [0,0,0]
-            self.viewup = [0, -1, 0]
+        # if self.obj.in_velo:
+        #     self.position = [-100, self.focal_point[0], self.focal_point[2]]
+        #     self.viewup = [0, 0, 1]
+        # else:
+        self.position = [self.focal_point[0], self.focal_point[1], -100]
+        # self.focal_point = [0,0,0]
+        self.viewup = [0, -1, 0]
         self.SetCamera()
 
     def PrintCamera(self, interactor, event):
         print(self.obj)
 
     def SetVerticalView(self, obj, event):
-        if self.obj.in_velo:
-            self.position = [self.focal_point[0], self.focal_point[1], 100]
-            self.viewup = [0, 1, 0]
-        else:
-            self.position = [self.focal_point[0], -100, self.focal_point[2]]
-            self.viewup = [-1, 0, 0]
+        # if self.obj.in_velo:
+        #     self.position = [self.focal_point[0], self.focal_point[1], 100]
+        #     self.viewup = [0, 1, 0]
+        # else:
+        self.position = [self.focal_point[0], -100, self.focal_point[2]]
+        self.viewup = [-1, 0, 0]
 
         self.SetCamera()
 
@@ -510,6 +503,7 @@ class CameraCallback(Callback):
         self.obj.SetPosition(self.position)
         self.obj.SetFocalPoint(self.focal_point)
         self.obj.SetViewUp(self.viewup)
+        self.obj.ComputeViewPlaneNormal()
         self.obj.SetClippingRange(self.clipping_range)
 
     def Start(self):
@@ -541,7 +535,6 @@ class SelectionCallback(Callback):
         # inner variable
         self.transform = vtk.vtkTransform()
         self.transform.PostMultiply()
-        self.angle = 0
         self.angle_step = 1
 
     def SetBoxCenterFocalPoint(self, obj, event):
@@ -570,7 +563,7 @@ class SelectionCallback(Callback):
             print("please select region first! ")
             return
 
-        self.angle += self.angle_step
+        self.obj.angle += self.angle_step
         self.transform.Identity()
         #
         center = GetBoundsCenter(box_widget.GetBounds())
@@ -589,12 +582,12 @@ class SelectionCallback(Callback):
         self.transform.Scale(scale)
 
         # rotation
-        if self.obj.in_velo:
-            self.transform.RotateZ(self.angle)
-        else:
-            self.transform.RotateY(self.angle)
+        # if self.obj.in_velo:
+        #     self.transform.RotateZ(self.obj.angle)
+        # else:
+        self.transform.RotateY(self.obj.angle)
 
-        box_widget.SetAngle(self.angle)
+        box_widget.SetAngle(self.obj.angle)
 
         # translation back
         self.transform.Translate(center)
@@ -603,7 +596,6 @@ class SelectionCallback(Callback):
         box_widget.SetTransform(self.transform)
 
     def Reset(self, obj, event):
-        self.angle = 0
         self.obj.Reset()
 
     def Start(self):
@@ -615,16 +607,30 @@ class SelectionCallback(Callback):
 
 
 class BoxWidgetCallback(Callback):
-    def UpdateSurface(self, obj, event):
-        if self.obj.selection is None:
-            return
-        polydata = vtk.vtkPolyData()
-        obj.GetPolyData(polydata)
-        self.obj.selection.SetSurfaceData(polydata)
-        self.obj.selection.Update()
+    def __init__(self,obj,displayer,debug=False):
+        super().__init__(obj,debug,displayer.interactor)
+        self.displayer = displayer
+    # def UpdateSurface(self, obj, event):
+    #     if self.obj.selection is None:
+    #         return
+    #     polydata = vtk.vtkPolyData()
+    #     obj.GetPolyData(polydata)
+    #     self.obj.selection.SetSurfaceData(polydata)
+    #     self.obj.selection.Update()
+
+    def SelectedEvent(self,obj,event):
+        print("box widget is selected! ")
+
+        self.displayer.pc_style_picker.SetCurrentBoxWidget(self.obj)
+
+        self.displayer.Render()
+
+
 
     def Start(self):
-        self.AddEventObserver("InteractionEvent", self.UpdateSurface)
+        self.AddEventObserver(vtk.vtkCommand.StartInteractionEvent,
+                              self.SelectedEvent)
+        # self.AddEventObserver("InteractionEvent", self.UpdateSurface)
 
 
 class BorderWidgetCallback(Callback):

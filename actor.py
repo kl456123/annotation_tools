@@ -1,7 +1,7 @@
 import vtk
 from vtk.util import numpy_support
 from utils import *
-from abc import ABCMeta,abstractclassmethod
+from abc import abstractclassmethod
 
 
 class MyActor(object):
@@ -113,12 +113,9 @@ class PolyDataActor(MyActor):
         self.actor = vtk.vtkActor()
 
 
-    def RemoveHigherPoints(self,height,height_axis,pos):
+    def RemoveHigherPoints(self,height,height_axis):
         points_np = self.all_points
-        if pos:
-            height_filter = np.where(points_np[:,height_axis]<=height)[0]
-        else:
-            height_filter = np.where(points_np[:, height_axis] >= height)[0]
+        height_filter = np.where(-points_np[:,height_axis]<=height)[0]
 
         numofpoints = height_filter.size
 

@@ -17,6 +17,7 @@ class Selection(object):
         self.in_velo = velo_only
         self.selected_actor = None
         self.box_widget = None
+        self.angle = 0
         self.SetInput(input_filter)
 
         # set renderer
@@ -88,8 +89,10 @@ class Selection(object):
             # del self.box_widget
         self.box_widget = BoxWidget(
             self.point_renderer, self.displayer, self.input)
+        self.displayer.pc_style_picker.SetCurrentBoxWidget(self.box_widget)
 
     def Reset(self):
+        self.angle = 0
 
         if not self.IsObjectSelected():
             # no more new thing need to reset
