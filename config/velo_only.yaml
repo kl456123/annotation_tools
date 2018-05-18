@@ -1,5 +1,5 @@
 dataset:
- resume: No
+ resume: Yes
  velodyne_only: Yes
  velo_path: "merge"
  # label_path: "merge"
