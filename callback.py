@@ -232,14 +232,15 @@ class PointCloudStyleCallback(StyleCallback):
             self.mode = "rubber"
         else:
             self.mode = "view"
-
-        window = self.interactor.GetRenderWindow()
-        title = window.GetWindowName()
-        title = title.split(":")[0]
-
-        title += ":"
-        title += self.mode
-        window.SetWindowName(title)
+        self.displayer.SetWindowName()
+        #
+        # window = self.interactor.GetRenderWindow()
+        # title = window.GetWindowName()
+        # title = title.split(":")[0]
+        #
+        # title += ":"
+        # title += self.mode
+        # window.SetWindowName(title)
 
     def LowerSlice(self,obj,event):
         self.height-=self.step
@@ -284,6 +285,9 @@ class DisplayerCallback(Callback):
         else:
             cur.On()
 
+    def BeforeQuit(self,obj,event):
+        self.displayer.dataset.SaveStatus()
+
     def Start(self):
         self.AddEventObserver(vtk.vtkCommand.MouseMoveEvent,
                               self.LeftButtonPressEvent)
@@ -292,31 +296,39 @@ class DisplayerCallback(Callback):
         self.AddKeyObserver("i", self.ToggleDisplayerBoxWidgets)
         self.AddKeyObserver("0", self.SaveLabel)
         self.AddKeyObserver("9", self.PrintLabel)
-        self.AddKeyObserver("n", self.Next)
         self.AddKeyObserver("j", self.ToggleDisplayerCurrentBoxWidget)
-        self.AddKeyObserver("m", self.Prev)
+        self.AddKeyObserver("k", self.PrevServeral)
+        self.AddKeyObserver("l",self.NextSeveral)
+        self.AddKeyObserver("m",self.PrevOne)
+        self.AddKeyObserver("n",self.NextOne)
         self.AddKeyObserver("r", self.ToggleMode)
         self.AddKeyObserver("q", self.BeforeQuit)
 
-    def BeforeQuit(self, obj, event):
-        self.displayer.dataset.SaveStatus()
 
     def ToggleMode(self, obj, event):
         print(self.displayer.pc_style_picker.style.GetEnabled())
 
-    def Prev(self, obj, event):
-        if self.displayer.dataset.data_idx == 0:
-            print("it is the first data! ")
-            return
+    def Prev(self, step):
+        # if self.displayer.dataset.data_idx <= 0:
+        #     print("it is the first data! ")
+        #     return
         if self.displayer.auto_save:
             self.displayer.SaveLabel()
-
-        self.displayer.dataset.LoadPrev(self.displayer.mode)
+        try:
+            self.displayer.dataset.LoadPrev(step)
+        except AssertionError as e:
+            print("ERROR: ",e)
+            return
         self.displayer.Reset()
 
         self.displayer.Init()
+    def PrevOne(self,obj,event):
+        self.Prev(1)
 
-    def Next(self, obj, event):
+    def PrevServeral(self,obj,event):
+        self.Prev(self.displayer.dataset.step)
+
+    def Next(self, step):
         """
         process:
         1. save the last label
@@ -330,11 +342,20 @@ class DisplayerCallback(Callback):
             self.displayer.SaveLabel()
 
         # next
-        self.displayer.dataset.LoadNext(self.displayer.mode)
-
+        try:
+            self.displayer.dataset.LoadNext(step=step)
+        except AssertionError as e:
+            print("ERROR: ", e)
+            return
         self.displayer.Reset()
 
         self.displayer.Init()
+
+    def NextOne(self,obj,event):
+        self.Next(1)
+
+    def NextSeveral(self,obj,event):
+        self.Next(self.displayer.dataset.step)
 
     def SaveLabel(self, obj, event):
 
@@ -363,12 +384,14 @@ class DisplayerCallback(Callback):
         if not self.displayer.selection.IsObjectSelected():
             print("please select object first! ")
             return
+
         self.displayer.AddBoxWidget()
 
         self.displayer.InputClass()
 
+
+
         self.displayer.InputOrientation()
-        # self.displayer.AddMyActor(self.displayer.selection.selected_actor)
 
         # pass box widget to pc_style_picker
         self.displayer.pc_style_picker.SetCurrentBoxWidget(
@@ -453,6 +476,7 @@ class CameraCallback(Callback):
     def SwitchFocalPoint(self, obj, event):
         self.idx_fps = (self.idx_fps + 1) % len(self.possible_fps)
         self.focal_point = self.possible_fps[self.idx_fps]
+        self.SetVerticalView(None,None)
         self.SetCamera()
 
     def RightRotation(self, obj, event):
@@ -509,7 +533,7 @@ class CameraCallback(Callback):
     def Start(self):
         self.AddKeyObserver("v", self.SetVerticalView)
         self.AddKeyObserver("h", self.SetHorizontalView)
-        self.AddKeyObserver("p", self.PrintCamera)
+        # self.AddKeyObserver("p", self.PrintCamera)
         self.AddKeyObserver("Right", self.RightRotation)
         self.AddKeyObserver("Left", self.LeftRotation)
         self.AddKeyObserver("Down", self.DownRotation)

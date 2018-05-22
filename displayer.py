@@ -145,13 +145,8 @@ class ImageStylePickerRenderer(StylePickerRenderer):
     def CloseLastBorderWidget(self):
         for border in self.border_widgets:
             border.Off()
-            # border.SetEnabled(0)
-            # self.renderer.RemoveActor(border)
-        self.border_widgets = []
-        # self.renderer.RemoveAllViewProps()
 
-    # def SetBorderWidget(self,border_widget):
-    #     self
+        self.border_widgets = []
 
 
 class PolyDataStylePickerRenderer(StylePickerRenderer):
@@ -226,9 +221,6 @@ class Displayer(object):
     def SetWindow(self):
         self.window = vtk.vtkRenderWindow()
 
-        # self.window.SetFullScreen()
-        # print("screen size: ",self.window.GetSize())
-
     def SetDataSet(self, dataset):
         self.dataset = dataset
 
@@ -260,11 +252,9 @@ class StylePickerDisplayer(Displayer):
         self.box_widgets = []
         self.classes = []
         self.StylePickerRenderers = []
-
-
+        self.classes_colors_map = cfg['classes_colors_map']
         self.auto_save = cfg["auto_save"]
         self.mode = cfg["mode"]
-
         self.window.SetSize(cfg["window_size"])
         self.window_size = tuple(cfg["window_size"])
 
@@ -275,13 +265,9 @@ class StylePickerDisplayer(Displayer):
         self.img_style_flag = False
 
         # set in order
-
         self.SetDataSet(dataset)
-
         self.velo_only = self.dataset.velodyne_only
-
         self.SetUpPCStylePickerRenderer(cfg["pc"])
-
         self.SetUpSelection(cfg["selection"])
         if not self.dataset.velodyne_only:
             self.SetUpImgStylePickerRenderer(cfg["img"])
@@ -291,16 +277,11 @@ class StylePickerDisplayer(Displayer):
         if size == self.window_size:
             return
         self.window_size = size
-        # print("last size: ",self.window_size)
-        # print("now size:",size)
+
         if not self.dataset.velodyne_only:
 
             for border in self.img_style_picker.border_widgets:
                 border.SetPosition()
-            # b = vtk.vtkBorderWidget()
-            # b.GetBorderRepresentation()
-            # b.SetRenderer()
-            # border.GetBorderRepresentation().SetRenderer(self.img_style_picker.renderer)
 
     def SetUpSelection(self, selection_cfg):
         # build selection
@@ -376,31 +357,15 @@ class StylePickerDisplayer(Displayer):
         self.pc_style_picker.renderer.ResetPossibleFocalPoint()
         self.pc_style_picker.points_actor.UpdatePoints()
 
-        # remove all but pc and selected actor in pc_renderer
-        # self.pc_style_picker.renderer.RemoveAllViewProps()
-        # points_actor = PolyDataActor(self.dataset.pc_reader.GetFilter())
-        # self.pc_style_picker.renderer.AddMyActor(points_actor)
-        # self.selection.ResetWidgetAndActor()
-        # self.pc_style_picker.renderer
-
-        # remove all but img in img_renderer
-        # self.img_style_picker.renderer.RemoveAllViewProps()
-        # img_actor = ImageActor(self.dataset.img_reader.GetOutputPort())
-        # self.img_style_picker.renderer.AddMyActor(img_actor)
-        # r = vtk.vtkRenderer()
-        # r.RemoveRemoveAllViewProps
-
-        # clean actor in renderer
-        # print("num of props in pc: ",
-        # self.pc_style_picker.renderer.GetNumberOfPropsRendered())
-        # print("num of props in img: ",
-        # self.img_style_picker.renderer.GetNumberOfPropsRendered())
+    def AdjustMode(self):
+        self.mode = self.dataset.GetModeFromDataIdx()
 
     def Init(self):
         # init parameters according to loaded data
 
         # init window title
         self.Render()
+        self.AdjustMode()
         self.SetWindowName()
         if not self.dataset.velodyne_only:
             self.img_style_picker.SetImageSize(self.dataset.GetImageSize())
@@ -427,10 +392,6 @@ class StylePickerDisplayer(Displayer):
                 info.extend([-1, -1, -1, -1])
             # 7
             info.extend(box_3D.GetInfo())
-
-            # fake score
-            # 1
-            # info.extend([1.0])
 
             all_info.append(info)
 
@@ -468,13 +429,16 @@ class StylePickerDisplayer(Displayer):
             # print(dims)
             box.SetCenterAndDim(center, dims, angle)
 
-            box.On()
+
             # add possible focal point to renderer
             point_renderer = self.pc_style_picker
             point_renderer.renderer.AddPossibleFocalPoint(
                 GetBoundsCenter(box.GetBounds()))
             self.box_widgets.append(box)
             self.classes.append(label["type"])
+
+            box.SetColorByClass(int(label['type']),self.classes_colors_map)
+            box.On()
 
             if self.dataset.velodyne_only:
                 continue
@@ -515,6 +479,7 @@ class StylePickerDisplayer(Displayer):
         class_idx = input("please input index of classes:")
         # print(type(class_idx))
         self.classes.append(class_idx)
+        self.box_widgets[-1].SetColorByClass(int(class_idx),self.classes_colors_map)
 
     def InputOrientation(self):
         orientation_idx = input("please input index of plane:")
@@ -537,8 +502,12 @@ class StylePickerDisplayer(Displayer):
                                     self.pc_style_picker.style_callback.mode)
         else:
             title = "the {}th:{}".format(
-                str(self.dataset.data_idx + 1),
+                str(self.dataset.data_idx),
                 self.pc_style_picker.style_callback.mode)
+        if (self.dataset.data_idx-1)%10==0:
+            title+="                    {}".format("annotation")
+        else:
+            title+="                    {}".format("display")
         self.window.SetWindowName(title)
 
     def SetLabelName(self, label_name):
@@ -552,7 +521,7 @@ class StylePickerDisplayer(Displayer):
         if save:
             self.SaveLabel()
 
-        self.dataset.LoadNext(self.mode)
+        self.dataset.LoadNext(0)
 
         self.Reset()
 
@@ -587,6 +556,7 @@ class StylePickerDisplayer(Displayer):
         if not self.selection.IsObjectSelected():
             print("please select first")
             return
+
         self.box_widgets.append(box_widget)
 
         # add possible focal point to renderer

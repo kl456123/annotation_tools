@@ -1,8 +1,8 @@
 dataset:
  resume: Yes
  velodyne_only: Yes
- velo_path: "merge"
- # label_path: "merge"
+ velo_path: "lidar"
+
  pointcloud_reader:
   transform: No
 
@@ -14,6 +14,10 @@ displayer:
   - 0.1
   - 0.2
   - 0.7
+ classes_colors_map:
+  - "blue"
+  - "green"
+  - "gray"
  pc:
   view_port:
    - 0.0

@@ -23,8 +23,17 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.selection = None
         self.init_center = None
         self.velo_only = displayer.velo_only
+        self.color = [1,1,1]
 
         self.RegisterWidgetCallback(displayer)
+
+    def SetColor(self,color):
+        self.color = color
+        self.UnchangeColor()
+
+    def SetColorByClass(self,class_idx,classes_colors_map):
+        self.color = color_map(classes_colors_map[class_idx])
+        self.UnchangeColor()
 
 
     def SetInput(self,input):
@@ -34,7 +43,7 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.GetOutlineProperty().SetColor([1, 1, 0])
 
     def UnchangeColor(self):
-        self.GetOutlineProperty().SetColor([1, 1, 1])
+        self.GetOutlineProperty().SetColor(self.color)
 
     def RegisterWidgetCallback(self,displayer):
         from callback import BoxWidgetCallback

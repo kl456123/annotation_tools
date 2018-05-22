@@ -2,6 +2,10 @@ import numpy as np
 import vtk
 
 
+def color_map(color_name):
+    color_map = {"red":[255, 0, 0],"green": [0, 255, 0],"blue":[0, 0, 255],"gray":[88,88,88]}
+    return color_map[color_name]
+
 def CreateBoxCoordsFromCorner(bottomleft,topright):
     topleft = [bottomleft[0],topright[1],0]
     bottomright = [topright[0],bottomleft[1],0]
@@ -32,7 +36,11 @@ def mkVtkIdList(it):
     return vil
 
 def read_from(filename,calib_file, transform=False):
-    scan = np.fromfile(filename, dtype=np.float32)
+    import os
+    if os.path.splitext(filename)[1]=='.pkl':
+        scan = np.load(filename,encoding='bytes')[b'points']
+    else:
+        scan = np.fromfile(filename, dtype=np.float32)
     scan = scan.reshape((-1, 4))
     # delete the last column and convert to homo
     scan[:,3] = 1
@@ -96,9 +104,6 @@ def pointtrans2Dto3D(point_2D):
     center = center /center[3]
     center = center[:3]
     return  point_3D,center
-
-
-    return point_3D
 
 
 def transform_matrix2Dto3D():

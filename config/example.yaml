@@ -19,5 +19,5 @@ displayer:
    # - 0.0
    # - 1.0
    # - 1.0
- mode: "display"
- auto_save: No
+ mode: "annotation"
+ auto_save: Yes

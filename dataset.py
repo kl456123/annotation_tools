@@ -63,6 +63,7 @@ class Dataset(object):
         resume = cfg["resume"]
         self.prefix_name = cfg.get("prefix_name")
         self.filter_classes = cfg.get("filter_classes")
+        self.step = cfg['step']
 
         self.image_path = os.path.join(root_path, image_path)
         self.velo_path = os.path.join(root_path, velo_path)
@@ -81,9 +82,9 @@ class Dataset(object):
             self.img_reader = ImageReaderFactory().GenerateImageReader(
                 img_reader_cfg["type"])
 
-        self.data_idx = -1
+        self.data_idx = 1
         self.label_filename = None
-        # load data names
+        # load data nLoadNextames
         if not self.velodyne_only:
             self.LoadImageNames()
         self.LoadVeloNames()
@@ -92,7 +93,7 @@ class Dataset(object):
 
         if resume:
             self.LoadStatus()
-        self.CheckFinish()
+        self.CheckDataIdxLegal()
 
     def InitDir(self):
         if not os.path.isdir(self.label_path):
@@ -102,6 +103,13 @@ class Dataset(object):
         if self.data_idx == self.num:
             print("all data are processed ,exit!")
             os.system("exit")
+
+    def CheckDataIdxLegal(self,data_idx=None):
+        if data_idx is None:
+            data_idx = self.data_idx
+        if data_idx>=1 and  data_idx<=self.num:
+            return True
+        return False
 
     def SetLogName(self, log_filename):
         self.log_filename = os.path.join(self.root_path, log_filename)
@@ -135,54 +143,58 @@ class Dataset(object):
         for velo_name in velo_names:
             self.velo_names.append(os.path.join(self.velo_path, velo_name))
 
-    def GetNextDataName(self):
-        print("data idx: ", self.data_idx)
-        self.data_idx += 1
+    def GetNextDataName(self,step):
 
-        if self.data_idx > self.num - 1:
-            print("all data is processed! ")
-            import sys
-            sys.exit(0)
-            # return None,None
+        assert self.CheckDataIdxLegal(self.data_idx+step),"Data Idx:{:d} is out of range".format(self.data_idx)
+        self.data_idx += step
         if self.prefix_name:
             return os.path.join(self.image_path, self.prefix_name + ".png"),\
                 os.path.join(self.velo_path, self.prefix_name + ".bin")
         if self.velodyne_only:
-            return None, self.velo_names[self.data_idx]
-        return self.image_names[self.data_idx], self.velo_names[self.data_idx]
+            return None, self.velo_names[self.data_idx-1]
+        res =  self.image_names[self.data_idx-1], self.velo_names[self.data_idx-1]
 
-    def GetPrevDataName(self):
-        assert not self.data_idx == -1, print("it is the first data! ")
-        self.data_idx -= 1
+        # increase data idx
+        # self.cur_data_idx = self.data_idx
+
+        return res
+
+    def GetPrevDataName(self,step):
+        assert self.CheckDataIdxLegal(self.data_idx-step),"Data Idx:{:d} is out of range".format(self.data_idx)
+        self.data_idx -= step
         if self.velodyne_only:
-            return None, self.velo_names[self.data_idx]
-        return self.image_names[self.data_idx], self.velo_names[self.data_idx]
+            return None, self.velo_names[self.data_idx-1]
+        res = self.image_names[self.data_idx-1], self.velo_names[self.data_idx-1]
+        return res
 
     def GetDataNameGenerator(self):
         for img_name, velo_name in zip(self.image_names, self.velo_names):
             yield img_name, velo_name
 
-    def LoadPrev(self, mode="display"):
-        img_name, velo_name = self.GetPrevDataName()
+    def LoadPrev(self,step=1):
+        img_name, velo_name = self.GetPrevDataName(step=step)
 
         self.label_filename = self.GenerateLabelName(velo_name)
 
-        # if mode == "display":
         self.LoadLabel(self.label_filename)
         self.ParseLabel()
-        # work finish
-        # if img_name is None:
-        #     return
         self.pc_reader.SetFileName(velo_name, self.velodyne_only)
         if self.img_reader:
             self.img_reader.SetFileName(img_name)
             self.img_reader.Update()
         self.pc_reader.Update()
 
-    def LoadNext(self, mode="display"):
+    def GetModeFromDataIdx(self):
+        if (self.data_idx-1)%self.step==0:
+            return "annotation"
+        else:
+            return "display"
+
+
+    def LoadNext(self, step=1):
         # data_names_gen = self.GetDataNameGenerator()
         # for img_name , velo_name in data_names_gen:
-        img_name, velo_name = self.GetNextDataName()
+        img_name, velo_name = self.GetNextDataName(step)
 
         self.label_filename = self.GenerateLabelName(velo_name)
 
@@ -205,7 +217,7 @@ class Dataset(object):
 
     def GetCurrentInfo(self):
         info = {}
-        info["data_idx"] = self.data_idx - 1
+        info["data_idx"] = self.data_idx
         return info
 
     def LoadStatus(self):

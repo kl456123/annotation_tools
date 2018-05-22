@@ -7,13 +7,13 @@ dataset:
   log_name: "log.pkl"
   label_type: "txt"
   resume: Yes
+  step: 10
   pointcloud_reader:
    transform: Yes
    calib_path: "./kitti/calib"
    color: "red"
   image_reader:
    type: "png"
-
 
 displayer:
  mode: "annotation"
