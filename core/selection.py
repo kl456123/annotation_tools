@@ -1,19 +1,26 @@
 import vtk
 from utils import *
-from actor import *
-from box_widget import *
-from callback import SelectionCallback
+from annotation_tools.core.actor import PolyDataActor
+from annotation_tools.core.box_widget import BoxWidget
+from annotation_tools.callbacks.selection_callback import SelectionCallback
+from annotation_tools.utils.common_util import GenerateColors
+
 ##################################
-#######box selection####
+# box selection
 ##################################
 
+######################################
+# frustum selection
+######################################
 
-######################################
-####frustum selection ################
-######################################
 
 class Selection(object):
-    def __init__(self, input_filter, displayer, point_renderer, debug=False, velo_only=False):
+    def __init__(self,
+                 input_filter,
+                 displayer,
+                 point_renderer,
+                 debug=False,
+                 velo_only=False):
         self.in_velo = velo_only
         self.selected_actor = None
         self.box_widget = None
@@ -87,8 +94,8 @@ class Selection(object):
         if self.box_widget is not None:
             self.box_widget.Off()
             # del self.box_widget
-        self.box_widget = BoxWidget(
-            self.point_renderer, self.displayer, self.input)
+        self.box_widget = BoxWidget(self.point_renderer, self.displayer,
+                                    self.input)
         self.displayer.pc_style_picker.SetCurrentBoxWidget(self.box_widget)
 
     def Reset(self):

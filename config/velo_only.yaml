@@ -1,7 +1,8 @@
 dataset:
  resume: Yes
  velodyne_only: Yes
- velo_path: "lidar"
+ velo_path: "merge"
+ num_classes: 10
 
  pointcloud_reader:
   transform: No

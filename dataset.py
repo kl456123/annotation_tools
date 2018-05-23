@@ -1,62 +1,23 @@
 import os
-from myio import *
+from annotation_tools.core.io import PointCloudReader, ImageReaderFactory
 import pickle
-import yaml
-import collections
+from abc import ABC, abstractclassmethod
+from annotation_tools.utils import common_util
+import annotation_tools
 
 
-def LoadYAML(config):
-    with open(config, "r") as f:
-        cfg = yaml.load(f)
-    return cfg
-
-
-def ListFile(dir_path):
-    return [
-        f for f in os.listdir(dir_path)
-        if os.path.isfile(os.path.join(dir_path, f))
-    ]
-
-
-def Update(d, u):
-    for k, v in u.items():
-        if isinstance(v, collections.Mapping):
-            d[k] = Update(d.get(k, {}), v)
-        else:
-            d[k] = v
-    return d
-
-
-class ConfigParser(object):
-    def __init__(self):
-        self.LoadDefaultConfig()
-
-    def LoadDefaultConfig(self, config="./config/default.yaml"):
-        self.cfg = LoadYAML(config)
-
-    def LoadConfig(self, config):
-        cfg = LoadYAML(config)
-        self.cfg = Update(self.cfg, cfg)
-
-    def GetConfig(self):
-        return self.cfg
-
-    def GetDatasetConfig(self):
-        return self.cfg["dataset"]
-
-    def GetDisplayerConfig(self):
-        return self.cfg["displayer"]
-
-
-class Dataset(object):
+class Dataset(ABC):
     def __init__(self, cfg):
-        root_path = cfg["root_path"]
+        root_path = os.path.join(annotation_tools.root_path(),
+                                 cfg["root_path"])
         image_path = cfg["image_path"]
         velo_path = cfg["velo_path"]
         label_path = cfg["label_path"]
         self.label_type = cfg["label_type"]
         log_filename = cfg["log_name"]
-        self.velodyne_only = cfg["velodyne_only"]
+        self._velo_only = cfg["velodyne_only"]
+        self._num_classes = cfg["num_classes"]
+        self._classes = cfg["classes"]
 
         pc_reader_cfg = cfg["pointcloud_reader"]
         img_reader_cfg = cfg["image_reader"]
@@ -76,148 +37,154 @@ class Dataset(object):
         self.velo_names = []
 
         self.pc_reader = PointCloudReader(pc_reader_cfg)
-        if self.velodyne_only:
+        if self._velo_only:
             self.img_reader = None
         else:
             self.img_reader = ImageReaderFactory().GenerateImageReader(
                 img_reader_cfg["type"])
 
-        self.data_idx = 1
-        self.label_filename = None
+        self._data_idx = 1
         # load data nLoadNextames
-        if not self.velodyne_only:
+        if not self._velo_only:
             self.LoadImageNames()
         self.LoadVeloNames()
-        self.num = len(self.velo_names)
+        self._num = len(self.velo_names)
         self.SetLogName(log_filename)
 
         if resume:
             self.LoadStatus()
         self.CheckDataIdxLegal()
 
+        #########################
+        # inner state and file
+        #########################
+        self._cur_img_name = None
+        self._cur_velo_name = None
+        self._label_filename = None
+
+    @property
+    def data_idx(self):
+        return self._data_idx
+
+    @property
+    def num_classes(self):
+        return self._num_classes
+
+    @property
+    def cur_prefix_name(self):
+        return os.path.splitext(os.path.basename(self._cur_velo_name))[0]
+
+    @property
+    def label_filename(self):
+        return self._label_filename
+
     def InitDir(self):
         if not os.path.isdir(self.label_path):
             os.mkdir(self.label_path)
 
-    def CheckFinish(self):
-        if self.data_idx == self.num:
-            print("all data are processed ,exit!")
-            os.system("exit")
+    @property
+    def velo_only(self):
+        return self._velo_only
 
-    def CheckDataIdxLegal(self,data_idx=None):
+    # def CheckFinish(self):
+    # if self.data_idx == self.num:
+    # print("all data are processed ,exit!")
+    # os.system("exit")
+
+    def CheckDataIdxLegal(self, data_idx=None):
         if data_idx is None:
-            data_idx = self.data_idx
-        if data_idx>=1 and  data_idx<=self.num:
+            data_idx = self._data_idx
+        if data_idx >= 1 and data_idx <= self._num:
             return True
         return False
 
     def SetLogName(self, log_filename):
         self.log_filename = os.path.join(self.root_path, log_filename)
 
-    # def SetLabelFileName(self,label_filename):
-    #     self.label_filename = os.path.join(self.root_path,label_filename)
-
     def LoadImageNames(self):
         # filename(not include path)
-        image_names = ListFile(self.image_path)
+        image_names = common_util.ListFile(self.image_path)
         image_names.sort()
         #  image_names.sort(key=lambda x: int(x[:-4]))
         for img_name in image_names:
             self.image_names.append(os.path.join(self.image_path, img_name))
 
-    def GenerateLabelName(self, data_name):
-        basename = os.path.basename(data_name)
+    def GenerateLabelName(self):
+        basename = os.path.basename(self._cur_velo_name)
         prefix, suffix = os.path.splitext(basename)
         suffix = "." + self.label_type
         return os.path.join(self.label_path, prefix + suffix)
 
     def LoadVeloNames(self):
-        velo_names = ListFile(self.velo_path)
+        velo_names = common_util.ListFile(self.velo_path)
         velo_names.sort()
 
-        #  try:
-        #  velo_names.sort(key=lambda x: int(x[:-4]))
-        #  except ValueError:
-        #  # name can not be convert to number
-        #  pass
         for velo_name in velo_names:
             self.velo_names.append(os.path.join(self.velo_path, velo_name))
 
-    def GetNextDataName(self,step):
+    def LoadDataNameByStep(self, step):
+        self.LoadDataNameByIdx(self._data_idx + step)
 
-        assert self.CheckDataIdxLegal(self.data_idx+step),"Data Idx:{:d} is out of range".format(self.data_idx)
-        self.data_idx += step
-        if self.prefix_name:
-            return os.path.join(self.image_path, self.prefix_name + ".png"),\
-                os.path.join(self.velo_path, self.prefix_name + ".bin")
-        if self.velodyne_only:
-            return None, self.velo_names[self.data_idx-1]
-        res =  self.image_names[self.data_idx-1], self.velo_names[self.data_idx-1]
+    def LoadDataNameByIdx(self, idx):
+        assert self.CheckDataIdxLegal(
+            idx), "Data Idx:{:d} is out of range".format(self._data_idx)
+        self._data_idx = idx
+        if self._velo_only:
+            self._cur_img_name = None
+        else:
+            self._cur_img_name = self.image_names[self._data_idx - 1]
+        self._cur_velo_name = self.velo_names[self._data_idx - 1]
 
-        # increase data idx
-        # self.cur_data_idx = self.data_idx
+    def Load(self, step):
+        self.LoadDataNameByStep(step)
+        self.LoadData()
 
-        return res
-
-    def GetPrevDataName(self,step):
-        assert self.CheckDataIdxLegal(self.data_idx-step),"Data Idx:{:d} is out of range".format(self.data_idx)
-        self.data_idx -= step
-        if self.velodyne_only:
-            return None, self.velo_names[self.data_idx-1]
-        res = self.image_names[self.data_idx-1], self.velo_names[self.data_idx-1]
-        return res
-
-    def GetDataNameGenerator(self):
-        for img_name, velo_name in zip(self.image_names, self.velo_names):
-            yield img_name, velo_name
-
-    def LoadPrev(self,step=1):
-        img_name, velo_name = self.GetPrevDataName(step=step)
-
-        self.label_filename = self.GenerateLabelName(velo_name)
-
-        self.LoadLabel(self.label_filename)
+        self.LoadLabel()
         self.ParseLabel()
-        self.pc_reader.SetFileName(velo_name, self.velodyne_only)
+
+    def LoadNext(self, step):
+        self.Load(step)
+
+    def LoadPrev(self, step):
+        self.Load(-step)
+
+    def LoadData(self):
+        self.pc_reader.SetFileName(self._cur_velo_name, self._velo_only)
         if self.img_reader:
-            self.img_reader.SetFileName(img_name)
+            self.img_reader.SetFileName(self._cur_img_name)
             self.img_reader.Update()
         self.pc_reader.Update()
 
+    def LoadLabel(self):
+        self._label_filename = self.GenerateLabelName()
+
+        if not os.path.isfile(self._label_filename):
+            print("{}:label is not exist".format(self._label_filename))
+            self.label = []
+            return
+        if self.label_type == "pkl":
+            mode = "rb"
+        else:
+            mode = "r"
+        with open(self._label_filename, mode) as f:
+            if self.label_type == "pkl":
+                self.label = self.LoadFromPKL(f)
+            else:
+                self.label = self.LoadFromText(f)
+
     def GetModeFromDataIdx(self):
-        if (self.data_idx-1)%self.step==0:
+        if (self._data_idx - 1) % self.step == 0:
             return "annotation"
         else:
             return "display"
 
-
-    def LoadNext(self, step=1):
-        # data_names_gen = self.GetDataNameGenerator()
-        # for img_name , velo_name in data_names_gen:
-        img_name, velo_name = self.GetNextDataName(step)
-
-        self.label_filename = self.GenerateLabelName(velo_name)
-
-        # if mode == "display":
-        self.LoadLabel(self.label_filename)
-        self.ParseLabel()
-        # work finish
-        # if img_name is None:
-        #     return
-        self.pc_reader.SetFileName(velo_name, self.velodyne_only)
-        if self.img_reader:
-            self.img_reader.SetFileName(img_name)
-            self.img_reader.Update()
-        self.pc_reader.Update()
-
     def GetImageSize(self):
         if self.img_reader:
             return self.img_reader.GetOutput().GetDimensions()
-        # yield self.pc_reader.GetOutputPort(),self.img_reader.GetOutputPort()
 
     def GetCurrentInfo(self):
         info = {}
-        info["data_idx"] = self.data_idx
+        info["data_idx"] = self._data_idx
         return info
 
     def LoadStatus(self):
@@ -226,30 +193,16 @@ class Dataset(object):
             return
         with open(self.log_filename, "rb") as f:
             info = pickle.load(f)
-            self.data_idx = info["data_idx"]
+            self._data_idx = info["data_idx"]
 
     def SaveStatus(self):
         with open(self.log_filename, "wb") as f:
             pickle.dump(self.GetCurrentInfo(), f)
         print("Dataset status is saved! ")
 
-    def LoadLabel(self, label_filename):
-        if not os.path.isfile(label_filename):
-            print("{}:label is not exist".format(label_filename))
-            self.label = []
-            return
-        if self.label_type == "pkl":
-            mode = "rb"
-        else:
-            mode = "r"
-        with open(label_filename, mode) as f:
-            if self.label_type == "pkl":
-                self.label = self.LoadFromPKL(f)
-            else:
-                self.label = self.LoadFromText(f)
-
     def LoadFromText(self, file):
         lines = file.readlines()
+
         return map(lambda x: x.strip().split(), lines)
 
     def LoadFromPKL(self, file):
@@ -312,23 +265,7 @@ class Dataset(object):
 # def SetColsLens(self):
 #     self.values = [1,1,1,1,4,3,3,1,1]
 
-    def ParseLabel(self):
-        objs = []
-        for l in self.label:
-            o = {}
-            if len(l) == 0:
-                continue
-            o['type'] = l[0]
-            if self.filter_classes is not None and l[0] not in self.filter_classes:
-                continue
-            o['truncation'] = float(l[1])
-            o['occlusion'] = int(l[2])
-            o['alpha'] = float(l[3])
-            o['box2d'] = [float(l[4]), float(l[5]), float(l[6]), float(l[7])]
-            o['h'] = float(l[8])
-            o['w'] = float(l[9])
-            o['l'] = float(l[10])
-            o['t'] = [float(l[11]), float(l[12]), float(l[13])]
-            o['yaw'] = float(l[14])
-            objs.append(o)
-        self.label = objs
+
+@abstractclassmethod
+def ParseLabel(self):
+    pass

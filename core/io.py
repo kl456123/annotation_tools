@@ -1,21 +1,25 @@
 import vtk
 import os
-from utils import read_from,GeneratePointPolyData,GenerateColors
+from annotation_tools.utils.common_util import GeneratePointPolyData, GenerateColors
+from annotation_tools.utils.dataset_util import read_from
+from annotation_tools.utils.dataset_util import load_calibration
+import annotation_tools
+
 
 class ImageReaderFactory(object):
     def __init__(self):
         pass
 
-    def _AnalysisFileType(self,filename):
+    def _AnalysisFileType(self, filename):
         return os.path.splitext(filename)[1][1:]
 
-    def GenerateImageReader(self,file_type):
+    def GenerateImageReader(self, file_type):
 
-        if file_type=="png":
+        if file_type == "png":
             png_reader = vtk.vtkPNGReader()
 
             return png_reader
-        elif file_type=="jpg" or file_type=="jpeg":
+        elif file_type == "jpg" or file_type == "jpeg":
             jpeg_reader = vtk.vtkJPEGReader()
 
             return jpeg_reader
@@ -23,31 +27,30 @@ class ImageReaderFactory(object):
             raise TypeError()
 
 
-
-from utils import load_calibration
 class PointCloudReader(object):
-    def __init__(self,cfg):
+    def __init__(self, cfg):
         self.transform = cfg["transform"]
         self.color_name = cfg["color"]
-        self.calib_path = cfg["calib_path"]
+        self.calib_path = os.path.join(annotation_tools.root_path(),
+                                       cfg["calib_path"])
         self.vertexGlyphFilter = vtk.vtkVertexGlyphFilter()
         self.calib = None
 
-    def GetCalibName(self,filename):
-        calib_filename =  os.path.splitext(os.path.basename(filename))[0]+".txt"
-        return os.path.join(self.calib_path,calib_filename)
+    def GetCalibName(self, filename):
+        calib_filename = os.path.splitext(
+            os.path.basename(filename))[0] + ".txt"
+        return os.path.join(self.calib_path, calib_filename)
 
-    def LoadCalib(self,calib_file):
+    def LoadCalib(self, calib_file):
         self.calib = load_calibration(calib_file)
 
-    def SetFileName(self,filename,velodyne_only):
+    def SetFileName(self, filename, velodyne_only):
         calib_name = self.GetCalibName(filename)
         if not velodyne_only:
             self.LoadCalib(calib_name)
-        scans = read_from(filename,calib_name,self.transform)
+        scans = read_from(filename, calib_name, self.transform)
         polydata = GeneratePointPolyData(scans, self.color_name)
         self.vertexGlyphFilter.SetInputData(polydata)
-
 
     def GetOutputPort(self):
         return self.vertexGlyphFilter.GetOutputPort()
