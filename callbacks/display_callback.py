@@ -33,16 +33,9 @@ class DisplayerCallback(Callback):
         self.AddKeyObserver("l", self.NextSeveral)
         self.AddKeyObserver("m", self.PrevOne)
         self.AddKeyObserver("n", self.NextOne)
-        self.AddKeyObserver("r", self.ToggleMode)
         self.AddKeyObserver("q", self.BeforeQuit)
 
-    def ToggleMode(self, obj, event):
-        print(self.displayer.pc_style_picker.style.GetEnabled())
-
     def Prev(self, step):
-        # if self.displayer.dataset.data_idx <= 0:
-        #     print("it is the first data! ")
-        #     return
         if self.displayer.auto_save:
             self.displayer.SaveLabel()
         try:
@@ -93,9 +86,6 @@ class DisplayerCallback(Callback):
 
         self.displayer.SaveLabel()
 
-    def SetLabel(self, obj, event):
-        self.displayer.SetLabel()
-
     def PrintLabel(self, obj, event):
         self.displayer.dataset.PrintLabel()
 
@@ -137,16 +127,3 @@ class DisplayerCallback(Callback):
 
         idx = self.displayer.SwitchCondition(xypos)
         self.displayer.SwitchStylePicker(idx)
-
-    def AddBoxWidget(self, obj, event):
-        if not self.add_widget:
-            return
-        pos = self.interactor.GetEventPosition()
-
-    def TriggleAddBoxWidget(self, obj, event):
-        if self.add_widget:
-            self.add_widget = False
-        else:
-            self.add_widget = True
-
-

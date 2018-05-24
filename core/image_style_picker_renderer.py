@@ -3,6 +3,7 @@ import vtk
 
 from annotation_tools.core.style_picker_renderer import StylePickerRenderer
 from annotation_tools.callbacks.image_style_callback import ImageStyleCallback
+from annotation_tools.core.border_widget import BorderWidget
 
 
 class ImageStylePickerRenderer(StylePickerRenderer):
@@ -22,13 +23,14 @@ class ImageStylePickerRenderer(StylePickerRenderer):
 
         # default is the last one to mark "selected"
         self.selected_border_idx = -1
+        self.classes = []
 
     def SetImageSize(self, img_size):
         self.img_size = img_size
 
-    def SetSelectedIdx(self, idx):
-        # TODO check it is legal first
-        self.selected_border_idx = idx
+    # def SetSelectedIdx(self, idx):
+    # TODO check it is legal first
+    # self.selected_border_idx = idx
 
     def SetCurrentBorderWidget(self, border_widget):
         if border_widget is None:
@@ -74,16 +76,46 @@ class ImageStylePickerRenderer(StylePickerRenderer):
     def RegisterPickerCallback(self, displayer):
         pass
 
-    # self.picker_callback = ImagePickerCallback(self.picker)
-
     def On(self):
         self.style.On()
 
     def Off(self):
         self.style.Off()
 
-    def CloseLastBorderWidget(self):
+    def CloseBorderWidget(self):
         for border in self.border_widgets:
             border.Off()
 
         self.border_widgets = []
+
+    def ResetClasses(self):
+        for c in self.classes:
+            del c
+
+    def Reset(self):
+        self.ResetClasses()
+        self.CloseBorderWidget()
+
+    def AddBorderWidgetFromLabel(self, labels, displayer):
+        size = displayer.interactor.GetRenderWindow().GetSize()
+        for label in labels:
+            box2d = label["box2d"]
+            a, b = box2d[1], box2d[3]
+            img_size = self.img_size
+
+            box2d[1] = img_size[1] - a
+            box2d[3] = img_size[1] - b
+
+            img_view_port = self.renderer.GetViewport()
+            img_start = img_view_port[:2]
+
+            box2d[1] += img_start[1] * size[1]
+            box2d[3] += img_start[1] * size[1]
+
+            border_widget = BorderWidget(box2d[:2], box2d[2:],
+                                         img_view_port[:2], self.renderer,
+                                         displayer)
+            # bind with it
+            # border_widget.BindBoxWidget(box)
+
+            self.border_widgets.append(border_widget)

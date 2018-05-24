@@ -12,6 +12,7 @@ from annotation_tools.core.pc_style_picker_renderer import PolyDataStylePickerRe
 from annotation_tools.core.image_style_picker_renderer import ImageStylePickerRenderer
 from annotation_tools.utils.geometry_util import GetBoundsCenter
 from annotation_tools.utils.common_util import GetTruncatedAndOccluded, GetObserverAngle, GenerateColorMap
+from annotation_tools.core.render_window import RenderWindow
 
 
 class Displayer(ABC):
@@ -55,19 +56,12 @@ class StylePickerDisplayer(Displayer):
         self.img_style_picker = None
         self.pc_style_picker = None
         self.current_idx = None
-        self.box_widgets = []
-        self.classes = []
         self.StylePickerRenderers = []
         self.auto_save = cfg["auto_save"]
         self.mode = cfg["mode"]
         self.fix_display = self.mode == 'display'
         self.window.SetSize(cfg["window_size"])
-        self.window_size = tuple(cfg["window_size"])
-
-        # hard code
-        # register window callback
-        self.window.AddObserver("ModifiedEvent", self._WindowCallback)
-
+        self.window.window_size = tuple(cfg["window_size"])
         self.img_style_flag = False
 
         # set in order
@@ -79,16 +73,13 @@ class StylePickerDisplayer(Displayer):
         if not self.dataset.velo_only:
             self.SetUpImgStylePickerRenderer(cfg["img"])
 
-    def _WindowCallback(self, obj, event):
-        size = self.window.GetSize()
-        if size == self.window_size:
-            return
-        self.window_size = size
+        #########################################
+        # Callback here
+        ########################################
+        self.window.RegisterRenderWindowCallback(self)
 
-        if not self.dataset.velo_only:
-
-            for border in self.img_style_picker.border_widgets:
-                border.SetPosition()
+    def SetWindow(self):
+        self.window = RenderWindow()
 
     def SetUpSelection(self, selection_cfg):
         # build selection
@@ -119,6 +110,9 @@ class StylePickerDisplayer(Displayer):
                                                [view_port[0], view_port[1]])
         img_style_picker.renderer.SetViewport(view_port)
         img_style_picker.renderer.SetBackground(bg)
+
+        # shared with pc_style_picker_renderer
+        img_style_picker.classes = self.pc_style_picker.classes
 
         self.SetImgStylePicker(img_style_picker)
 
@@ -151,25 +145,17 @@ class StylePickerDisplayer(Displayer):
 
         self.SetPointCloudStylePicker(pc_style_picker)
 
-    def AdjustBoxWidgetsColor(self):
-        for idx, box_widget in enumerate(self.box_widgets):
-            if idx == 0:
-                box_widget.AdjustColor(False)
-            else:
-                box_widget.AdjustColor(True)
-
     def Reset(self):
-
-        self.CloseLastBoxWidget()
-        self.classes = []
-        self.pc_style_picker.renderer.ResetPossibleFocalPoint()
-        self.pc_style_picker.points_actor.UpdatePoints()
+        self.img_style_picker.Reset()
+        self.pc_style_picker.Reset()
 
     def AdjustMode(self):
-        print("fix display: ", self.fix_display)
         if self.fix_display:
             return
-        self.mode = self.dataset.GetModeFromDataIdx()
+        if (self._data_idx - 1) % self.step == 0:
+            self.mode = "annotation"
+        else:
+            self.mode = "display"
 
     def Init(self):
         # init parameters according to loaded data
@@ -181,17 +167,16 @@ class StylePickerDisplayer(Displayer):
         if not self.dataset.velo_only:
             self.img_style_picker.SetImageSize(self.dataset.GetImageSize())
         self.AddLabelWidgets(self.dataset.label)
-        # self.AddLabelClasses(self.dataset.label)
 
     def SetLabel(self):
         all_info = []
         if self.img_style_picker:
             box_2D = self.img_style_picker.border_widgets
-        for idx, box_3D in enumerate(self.box_widgets):
+        for idx, box_3D in enumerate(self.pc_style_picker.box_widgets):
             # the num is 16 in all
             info = []
             # 1
-            info.append(self.classes[idx])
+            info.append(self.pc_style_picker.classes[idx])
             # 2
             info.extend(GetTruncatedAndOccluded())
             # 1
@@ -225,63 +210,19 @@ class StylePickerDisplayer(Displayer):
         else:
             raise ValueError("mode is not recognized!")
 
+    def BindStylePickers(self):
+        for border_widget, box_widget in zip(
+                self.img_style_picker.border_widgets,
+                self.pc_style_picker.box_widgets):
+            border_widget.BindBoxWidget(box_widget)
+
     def AddLabelWidgets(self, labels):
-        factor = 1
-        for label in labels:
-            center = label["t"]
-            center[1] -= label["h"] / 2.0
+        self.img_style_picker.AddBorderWidgetFromLabel(labels, self)
+        self.pc_style_picker.AddBoxWidgetFromLabel(labels, self)
 
-            dims = label["h"], label["w"], label["l"]
-            dims = [factor * i for i in dims]
-
-            angle = label["yaw"] / math.pi * 180
-            # angle=0
-            box = BoxWidget(self.pc_style_picker.renderer, self)
-            # print(dims)
-            box.SetCenterAndDim(center, dims, angle)
-
-            # add possible focal point to renderer
-            point_renderer = self.pc_style_picker
-            point_renderer.renderer.AddPossibleFocalPoint(
-                GetBoundsCenter(box.GetBounds()))
-            self.box_widgets.append(box)
-            self.classes.append(label["type"])
-            # try:
-            # if label['type'].isdigit():
-            # class_idx = int(label['type'])
-            # else:
-            # class_idx = self.dataset._classes.index(label['type'])
-            # except ValueError:
-            # # default value
-            # class_idx = -1
-            # box.SetColor(self.classes_colors_map[class_idx])
-            self.SetColorForBoxWidget(box, label['type'])
-            box.On()
-
-            if self.dataset.velo_only:
-                continue
-            box2d = label["box2d"]
-            a, b = box2d[1], box2d[3]
-            img_size = self.img_style_picker.img_size
-
-            box2d[1] = img_size[1] - a
-            box2d[3] = img_size[1] - b
-
-            img_view_port = self.img_style_picker.renderer.GetViewport()
-            img_start = img_view_port[:2]
-            size = self.interactor.GetRenderWindow().GetSize()
-
-            box2d[1] += img_start[1] * size[1]
-            box2d[3] += img_start[1] * size[1]
-
-            border_widget = BorderWidget(box2d[:2], box2d[2:],
-                                         img_view_port[:2],
-                                         self.img_style_picker.renderer, self)
-            # bind with it
-            border_widget.BindBoxWidget(box)
-
-            # border_widget.SetCurrentRenderer(self.img_style_picker.renderer)
-            self.img_style_picker.border_widgets.append(border_widget)
+        # bind two style_picker
+        if not self.dataset.velo_only:
+            self.BindStylePickers()
 
     def SetColorForBoxWidget(self, box_widget, class_type):
         try:
@@ -311,25 +252,13 @@ class StylePickerDisplayer(Displayer):
 
     def InputClass(self):
         class_idx = input("please input index of classes:")
-        # print(type(class_idx))
-        self.classes.append(class_idx)
-        # self.box_widgets[-1].SetColor(self.classes_colors_map[int(class_idx)])
-        self.SetColorForBoxWidget(self.box_widgets[-1], class_idx)
+        self.pc_style_picker.classes.append(class_idx)
+        self.SetColorForBoxWidget(self.pc_style_picker.box_widgets[-1],
+                                  class_idx)
 
     def InputOrientation(self):
         orientation_idx = input("please input index of plane:")
-        # print(type(orientation_idx))
-        self.box_widgets[-1].orientation = int(orientation_idx)
-        # self.orientation.append(orientation_idx)
-
-    def CloseLastBoxWidget(self):
-        # close border widgets
-        if not self.dataset.velo_only:
-            self.img_style_picker.CloseLastBorderWidget()
-
-        for box in self.box_widgets:
-            box.Off()
-        self.box_widgets = []
+        self.pc_style_picker.box_widgets[-1].orientation = int(orientation_idx)
 
     def SetWindowName(self):
         if self.dataset.prefix_name:
@@ -341,9 +270,6 @@ class StylePickerDisplayer(Displayer):
                 self.pc_style_picker.style_callback.mode)
         title += "                    {}".format(self.mode)
         self.window.SetWindowName(title)
-
-    def SetLabelName(self, label_name):
-        self.label_name = label_name
 
     def Start(self):
         self.Next(save=False)
@@ -363,15 +289,6 @@ class StylePickerDisplayer(Displayer):
         if not self.dataset.velodyne_only:
             return self.img_style_picker.border_widgets_idx
 
-    def SetPointActor(self, myactor):
-        self.point_actor = myactor
-
-    def SetImageActor(self, myactor):
-        self.img_actor = myactor
-
-    def SetFileName(self, filename):
-        self.filename = filename
-
     def SetSelection(self, selection):
         self.selection = selection
 
@@ -389,7 +306,7 @@ class StylePickerDisplayer(Displayer):
             print("please select first")
             return
 
-        self.box_widgets.append(box_widget)
+        self.pc_style_picker.box_widgets.append(box_widget)
 
         # add possible focal point to renderer
         point_renderer = self.pc_style_picker

@@ -265,7 +265,6 @@ class Dataset(ABC):
 # def SetColsLens(self):
 #     self.values = [1,1,1,1,4,3,3,1,1]
 
-
-@abstractclassmethod
-def ParseLabel(self):
-    pass
+    @abstractclassmethod
+    def ParseLabel(self):
+        pass

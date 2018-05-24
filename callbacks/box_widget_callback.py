@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-
 import vtk
 from annotation_tools.callback import Callback
+
 
 class BoxWidgetCallback(Callback):
     def __init__(self, obj, displayer, debug=False):
@@ -28,5 +28,3 @@ class BoxWidgetCallback(Callback):
         self.AddEventObserver(vtk.vtkCommand.StartInteractionEvent,
                               self.SelectedEvent)
         # self.AddEventObserver("InteractionEvent", self.UpdateSurface)
-
-
