@@ -437,7 +437,7 @@ class StylePickerDisplayer(Displayer):
             self.box_widgets.append(box)
             self.classes.append(label["type"])
 
-            box.SetColorByClass(int(label['type']),self.classes_colors_map)
+            box.SetColor(self.classes_colors_map[int(label['type'])-1])
             box.On()
 
             if self.dataset.velodyne_only:
@@ -475,14 +475,28 @@ class StylePickerDisplayer(Displayer):
         # self.pc_style_picker.renderer.SetViewport(self.poly_view_port)
         self.AddStylePickerRenderer(pc_style_picker)
 
+
     def InputClass(self):
-        class_idx = input("please input index of classes:")
+        while(True):
+            class_idx = input("please input index of classes:")
+            if class_idx.isdigit():
+                class_idx = int(class_idx)
+                if 1<=class_idx<=len(self.classes_colors_map):
+                    break;
+            print("input is not correct !")
         # print(type(class_idx))
+
         self.classes.append(class_idx)
-        self.box_widgets[-1].SetColorByClass(int(class_idx),self.classes_colors_map)
+        self.box_widgets[-1].SetColor(self.classes_colors_map[class_idx-1])
 
     def InputOrientation(self):
-        orientation_idx = input("please input index of plane:")
+        while(True):
+            orientation_idx = input("please input index of plane:")
+            if orientation_idx.isdigit():
+                orientation_idx = int(orientation_idx)
+                if 0<=orientation_idx<=3:
+                    break;
+            print("input is not correct !")
         # print(type(orientation_idx))
         self.box_widgets[-1].orientation = int(orientation_idx)
         # self.orientation.append(orientation_idx)
@@ -501,7 +515,7 @@ class StylePickerDisplayer(Displayer):
             title = "{} :{}".format(self.dataset.prefix_name,
                                     self.pc_style_picker.style_callback.mode)
         else:
-            title = "the {}th:{}".format(
+            title = "filename:{}(the {}th):{}".format(self.dataset.GetCurPrefixName(),
                 str(self.dataset.data_idx),
                 self.pc_style_picker.style_callback.mode)
         if (self.dataset.data_idx-1)%10==0:

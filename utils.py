@@ -2,9 +2,9 @@ import numpy as np
 import vtk
 
 
-def color_map(color_name):
-    color_map = {"red":[255, 0, 0],"green": [0, 255, 0],"blue":[0, 0, 255],"gray":[88,88,88]}
-    return color_map[color_name]
+# def color_map(color_name):
+#     color_map = {"red":[255, 0, 0],"green": [0, 255, 0],"blue":[0, 0, 255],"gray":[88,88,88]}
+#     return color_map[color_name]
 
 def CreateBoxCoordsFromCorner(bottomleft,topright):
     topleft = [bottomleft[0],topright[1],0]

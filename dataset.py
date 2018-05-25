@@ -174,6 +174,8 @@ class Dataset(object):
     def LoadPrev(self,step=1):
         img_name, velo_name = self.GetPrevDataName(step=step)
 
+        self.SetCurPrefixName(os.path.splitext(os.path.basename(velo_name))[0])
+
         self.label_filename = self.GenerateLabelName(velo_name)
 
         self.LoadLabel(self.label_filename)
@@ -191,10 +193,20 @@ class Dataset(object):
             return "display"
 
 
+    def SetCurPrefixName(self,name):
+        self.cur_prefix_name = name
+
+
+    def GetCurPrefixName(self):
+        return self.cur_prefix_name
+
+
     def LoadNext(self, step=1):
         # data_names_gen = self.GetDataNameGenerator()
         # for img_name , velo_name in data_names_gen:
         img_name, velo_name = self.GetNextDataName(step)
+
+        self.SetCurPrefixName(os.path.splitext(os.path.basename(velo_name))[0])
 
         self.label_filename = self.GenerateLabelName(velo_name)
 

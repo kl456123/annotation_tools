@@ -31,9 +31,9 @@ class BoxWidget(vtk.vtkBoxWidget):
         self.color = color
         self.UnchangeColor()
 
-    def SetColorByClass(self,class_idx,classes_colors_map):
-        self.color = color_map(classes_colors_map[class_idx])
-        self.UnchangeColor()
+    # def SetColorByClass(self,class_idx,classes_colors_map):
+    #     self.color = color_map(classes_colors_map[class_idx])
+    #     self.UnchangeColor()
 
 
     def SetInput(self,input):
